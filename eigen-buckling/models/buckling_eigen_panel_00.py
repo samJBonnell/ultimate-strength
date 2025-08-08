@@ -323,6 +323,44 @@ def find_closest_node(nodes, target_point, min_dist=1e20):
 
     return closest_node
 
+def get_nodes_along_axis(nodes, reference_point, dof, max_bound, capture_offset):    
+    lower = [reference_point[0] - capture_offset,
+             reference_point[1] - capture_offset,
+             reference_point[2] - capture_offset]
+    upper = [reference_point[0] + capture_offset,
+             reference_point[1] + capture_offset,
+             reference_point[2] + capture_offset]
+    
+    idx = dof - 1
+    lower[idx] = -max_bound
+    upper[idx] =  max_bound
+    
+    return nodes.getByBoundingBox(lower[0], lower[1], lower[2],
+                                  upper[0], upper[1], upper[2])
+
+def move_closest_nodes_to_neutral_axis(part, target_point, axis_dof = 1, free_dof = 2):
+    """Move the set of all nodes closest to the axis defined by the """
+    reference_point = find_closest_node(part.nodes, target_point)
+
+    # Capture all of the points on the part that lie along the line of action of the dof
+    capture_offset = 0.001
+    max_bound = 1e5 # A large number that will never be reached by the bounds of the part
+
+    # Capture nodes along the neutral axis defined by the dof and the reference_point
+    nodes = get_nodes_along_axis(part.nodes, reference_point.coordinates, axis_dof, max_bound, capture_offset)
+
+    for node in nodes:
+        #print("Node: '{}'- Position: '{}'".format(node.label, node.coordinates))
+        # Find the coordinates of the point and presribe the neutral axis location
+        temp_coords = node.coordinates
+
+        coordinates = list(node.coordinates)
+        coordinates[free_dof - 1] = target_point[free_dof - 1]
+
+        # Move mesh to match this neutral axis location
+        part.editNode(nodes=(node,), coordinates=(tuple(coordinates),))
+        print("[move_closest_nodes_to_neutral_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
+
 def clean_json(obj):
     if isinstance(obj, dict):
         return {k: clean_json(v) for k, v in obj.items()}
@@ -610,6 +648,22 @@ target_point_right = np.dot(T_inv, target_point_right)
 
 target_point_left = tuple(target_point_left.flatten()[:3])
 target_point_right = tuple(target_point_right.flatten()[:3])
+
+# Must reference the points in the part reference frame, not the assembly
+move_closest_nodes_to_neutral_axis(model.parts['web-mesh'], target_point_left, axis_dof = 1, free_dof = 2)
+move_closest_nodes_to_neutral_axis(model.parts['web-mesh'], target_point_right, axis_dof = 1, free_dof = 2)
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Find closest nodes to target points
 closest_node_left = find_closest_node(nodes, target_point_left)
