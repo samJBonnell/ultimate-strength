@@ -1,18 +1,5 @@
-# Program Information
-# The following program is a parametric definiton of a stiffened panel allowing for the iteration of panel geometries and thicknesses for
-# a variety of optimization problems. This was created to complete two of four optimization tasks in late 2024 as a learning opportunity
-# prior to starting fully into 
-
 # Sam Bonnell - UBC Labratory for Structural Efficiency MASc Student
-# 2024-06-19
-
-# ----------------------------------------------------------------------------------------------------------------------------------
-
-# Required to add a few new parameters into the model
-# Location of patch loading,
-# Size of the patch loading
-
-# Need to select the correct subsection of the 
+# 2025-08-11
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Library Import
@@ -270,19 +257,121 @@ def assign_section_bounds(model, part_name, section_name, bounds):
     )
     print("[assign_section_bounds] Assigned section '{}' to {} face(s) on part '{}'.".format(section_name, len(faces), part_name))
 
-def create_node_set(assembly, set_name, instance_name, bounds):
-    """Create a node set using faces found within a bounding box (note: nodes from faces may be ambiguous)."""
+def assign_element_section_bounds(part, section_name, bounds):
+    """Assign a section to all faces within a bounding box."""
     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    faces = assembly.instances[instance_name].faces.getByBoundingBox(
+    elements = part.elements.getByBoundingBox(
         xMin=x_min, xMax=x_max,
         yMin=y_min, yMax=y_max,
         zMin=z_min, zMax=z_max
     )
-    if not faces:
-        raise ValueError("[create_node_set] No faces found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, instance_name))
-    assembly.Set(name=set_name, nodes=faces)  # This line assumes face-based node selection
-    print("[create_node_set] Created face-based node set '{}' with {} face(s) on instance '{}'.".format(set_name, len(faces), instance_name))
-    return faces
+    if not elements:
+        raise ValueError("[assign_section_bounds] No elements found for section assignment in bounds {} on part '{}'.".format(bounds, part))
+    part.Set(name='sectionAssignment', elements=elements)
+    part.SectionAssignment(
+        region=part.sets['sectionAssignment'],
+        sectionName=section_name,
+        offset=0.0,
+        offsetField='',
+        offsetType=MIDDLE_SURFACE,
+        thicknessAssignment=FROM_SECTION
+    )
+    print("[assign_section_bounds] Assigned section '{}' to {} element(s) on part '{}'.".format(section_name, len(elements), part.name))
+
+# def create_node_set(assembly, set_name, instance_name, bounds):
+#     """Create a node set using faces found within a bounding box."""
+#     x_min, x_max, y_min, y_max, z_min, z_max = bounds
+#     nodes = assembly.instances[instance_name].nodes.getByBoundingBox(
+#         xMin=x_min, xMax=x_max,
+#         yMin=y_min, yMax=y_max,
+#         zMin=z_min, zMax=z_max
+#     )
+#     if not nodes:
+#         raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, instance_name))
+#     assembly.Set(name=set_name, nodes=nodes)  # This line assumes face-based node selection
+#     print("[create_node_set] Created face-based node set '{}' with {} face(s) on instance '{}'.".format(set_name, len(nodes), instance_name))
+#     return nodes
+
+# def create_node_set_part(part, set_name, part_name, bounds):
+#     """Create a node set using faces found within a bounding box."""
+#     x_min, x_max, y_min, y_max, z_min, z_max = bounds
+#     nodes = part.nodes.getByBoundingBox(
+#         xMin=x_min, xMax=x_max,
+#         yMin=y_min, yMax=y_max,
+#         zMin=z_min, zMax=z_max
+#     )
+#     if not nodes:
+#         raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, part_name))
+#     part.Set(name=set_name, nodes=nodes)  # This line assumes face-based node selection
+#     print("[create_node_set] Created face-based node set '{}' with {} face(s) on part '{}'.".format(set_name, len(nodes), part_name))
+#     return nodes
+
+def create_node_set(container, set_name, instance_name=None, bounds=None):
+    """
+    Create a node set using a bounding box and return the nodes and their labels.
+    
+    Works for:
+    - Assembly (requires instance_name)
+    - Part (instance_name is ignored)
+    
+    Parameters
+    ----------
+    container : Assembly or Part
+        The object on which to create the set.
+    set_name : str
+        Name of the node set to create.
+    instance_name : str, optional
+        Required if `container` is an Assembly.
+    bounds : tuple
+        (x_min, x_max, y_min, y_max, z_min, z_max)
+    
+    Returns
+    -------
+    tuple
+        (nodes, labels) where:
+            nodes  = NodeArray object from Abaqus
+            labels = list of node labels (ints)
+    """
+    if bounds is None:
+        raise ValueError("[create_node_set] Bounds must be specified.")
+
+    x_min, x_max, y_min, y_max, z_min, z_max = bounds
+
+    # Assembly case
+    if hasattr(container, "instances") and instance_name is not None:
+        target_nodes = container.instances[instance_name].nodes.getByBoundingBox(
+            xMin=x_min, xMax=x_max,
+            yMin=y_min, yMax=y_max,
+            zMin=z_min, zMax=z_max
+        )
+        if not target_nodes:
+            raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} on instance '{}'.".format(
+                set_name, bounds, instance_name))
+        container.Set(name=set_name, nodes=target_nodes)
+        print("[create_node_set] Created node set '{}' with {} node(s) in assembly on instance '{}'.".format(
+            set_name, len(target_nodes), instance_name))
+
+    # Part case
+    elif hasattr(container, "nodes"):
+        target_nodes = container.nodes.getByBoundingBox(
+            xMin=x_min, xMax=x_max,
+            yMin=y_min, yMax=y_max,
+            zMin=z_min, zMax=z_max
+        )
+        if not target_nodes:
+            raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} in part.".format(
+                set_name, bounds))
+        container.Set(name=set_name, nodes=target_nodes)
+        print("[create_node_set] Created node set '{}' with {} node(s) in part.".format(
+            set_name, len(target_nodes)))
+
+    else:
+        raise TypeError("[create_node_set] 'container' must be an Assembly or Part object.")
+
+    # Extract labels from the nodes
+    labels = [node.label for node in target_nodes]
+
+    return target_nodes, labels
 
 def write_debug_file(object, file):
     f = open(file, "w")
@@ -311,6 +400,19 @@ def write_trial_ndjson_gz(output, path="results.jsonl.gz"):
         f.write(json_line.encode("utf-8"))
 
 def find_closest_node(nodes, target_point, min_dist=1e20):
+    """
+    Given a list of nodes and a point in R3, the function will return the closest
+    node based on Euclidean distance.
+
+    Parameters
+    ----------
+    nodes : Abaqus Node list
+    target_point : tuple containing location information (x, y, z)
+
+    Returns
+    -------
+    Closest Abaqus Node item to target_point
+    """
     for node in nodes:
         x, y, z = node.coordinates
         dx = x - target_point[0]
@@ -338,8 +440,8 @@ def get_nodes_along_axis(nodes, reference_point, dof, max_bound, capture_offset)
     return nodes.getByBoundingBox(lower[0], lower[1], lower[2],
                                   upper[0], upper[1], upper[2])
 
-def move_closest_nodes_to_neutral_axis(part, target_point, axis_dof = 1, free_dof = 2):
-    """Move the set of all nodes closest to the axis defined by the """
+def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
+    """Move the closest nodes along the axis_dof direction to target_point along the free_dof direction"""
     reference_point = find_closest_node(part.nodes, target_point)
 
     # Capture all of the points on the part that lie along the line of action of the dof
@@ -359,7 +461,63 @@ def move_closest_nodes_to_neutral_axis(part, target_point, axis_dof = 1, free_do
 
         # Move mesh to match this neutral axis location
         part.editNode(nodes=(node,), coordinates=(tuple(coordinates),))
-        print("[move_closest_nodes_to_neutral_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
+        print("[move_closest_nodes_to_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
+
+def set_local_element_thickness(part, target_point, axis_dof, section_name='local-thickness', depth_of_search=1, set_name='temp'):
+    """Assign a section to elements connected along an axis, expanding out by edge-sharing neighbours."""
+    reference_point = find_closest_node(part.nodes, target_point)
+
+    capture_offset = 0.001
+    max_bound = 1e5
+
+    nodes = get_nodes_along_axis(part.nodes, reference_point.coordinates, axis_dof, max_bound, capture_offset)
+
+    def edges_of_element(elem):
+        node_labels = [node.label for node in elem.getNodes()]
+        edges = []
+        n = len(node_labels)
+        for i in range(n):
+            n1 = node_labels[i]
+            n2 = node_labels[(i + 1) % n]
+            edges.append(tuple(sorted((n1, n2))))
+        return edges
+
+    connected_labels = set()
+    for node in nodes:
+        connected_labels.update(e.label for e in node.getElements())
+
+    edge_map = {}
+    for elem in part.elements:
+        for edge in edges_of_element(elem):
+            edge_map.setdefault(edge, set()).add(elem.label)
+
+    selected_labels = set(connected_labels)
+    frontier = set(connected_labels)
+
+    for _ in range(depth_of_search):
+        next_frontier = set()
+        for elem_label in frontier:
+            elem = part.elements.getFromLabel(elem_label)
+            for edge in edges_of_element(elem):
+                for neigh in edge_map.get(edge, ()):
+                    if neigh not in selected_labels:
+                        selected_labels.add(neigh)
+                        next_frontier.add(neigh)
+        frontier = next_frontier
+
+    selected_elements = part.elements.sequenceFromLabels(sorted(selected_labels))
+
+    elem_set = part.Set(name=set_name, elements=selected_elements)
+    part.SectionAssignment(
+        region=elem_set,
+        sectionName=section_name,
+        offset=0.0,
+        offsetType=MIDDLE_SURFACE,
+        offsetField='',
+        thicknessAssignment=FROM_SECTION
+    )
+
+    print("Assigned section '{}' to {} elements.".format(section_name, len(selected_elements)))
 
 def clean_json(obj):
     if isinstance(obj, dict):
@@ -424,43 +582,41 @@ model.Part(
 # Definition of Panel Model follows...
 # Part Geometry
 
+web_spacing = float(panel.width) / (panel.num_longitudinal + 1)
+half_width = float(panel.width) / 2
+web_locations = np.arange(-half_width + web_spacing, half_width, web_spacing)
+
 # Plate sketch & part
-sketch = model.ConstrainedSketch(name='profileSketch', sheetSize=100.0)
+sketch = model.ConstrainedSketch(name='geometry', sheetSize=100.0)
 sketch.rectangle(point1=(-panel.width/2, 0), point2=(panel.width/2, panel.length))
 
 p = model.Part(name='plate', dimensionality=THREE_D, type=DEFORMABLE_BODY)
 p.BaseShell(sketch=sketch)
-del model.sketches['profileSketch']
+del model.sketches['geometry']
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Longitudinal Stiffener sketch & part
-stepSize = 0
-stiffenerPoint = -(float(panel.width)/2)
-model.ConstrainedSketch(name='profileSketch', sheetSize=200.0)
-for index in range(panel.num_longitudinal):
-    stepSize = float(panel.width)/(panel.num_longitudinal + 1)
-    stiffenerPoint += stepSize
-    model.sketches['profileSketch'].Line(point1=(stiffenerPoint, 0.0), point2=(stiffenerPoint, panel.h_longitudinal_web))
-    model.sketches['profileSketch'].VerticalConstraint(entity=model.sketches['profileSketch'].geometry[2 + index], addUndoState=False)
 
-model.parts['web'].BaseShellExtrude(depth=panel.length, sketch=model.sketches['profileSketch'])
-del model.sketches['profileSketch']
+model.ConstrainedSketch(name='geometry', sheetSize=200.0)
+for index, web_location in enumerate(web_locations):
+    print(index)
+    model.sketches['geometry'].Line(point1=(float(web_location), 0.0), point2=(float(web_location), panel.h_longitudinal_web))
+    model.sketches['geometry'].VerticalConstraint(entity=model.sketches['geometry'].geometry[2 + index], addUndoState=False)
+
+model.parts['web'].BaseShellExtrude(depth=panel.length, sketch=model.sketches['geometry'])
+del model.sketches['geometry']
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Longitudinal Flange sketch & part
-halfWidth = float(panel.w_longitudinal_flange)/2
+half_flange_width = float(panel.w_longitudinal_flange)/2
+model.ConstrainedSketch(name='geometry', sheetSize=200.0)
 
-stepSize = 0
-stiffenerPoint = -(float(panel.width)/2)
-model.ConstrainedSketch(name='profileSketch', sheetSize=200.0)
-for index in range(panel.num_longitudinal):
-    stepSize = float(panel.width)/(panel.num_longitudinal + 1)
-    stiffenerPoint += stepSize
-    model.sketches['profileSketch'].Line(point1=(stiffenerPoint - halfWidth, panel.h_longitudinal_web), point2=(stiffenerPoint + halfWidth, panel.h_longitudinal_web))
-    model.sketches['profileSketch'].HorizontalConstraint(entity=model.sketches['profileSketch'].geometry[2 + index], addUndoState=False)
+for index, web_location in enumerate(web_locations):
+    model.sketches['geometry'].Line(point1=(float(web_location) - half_flange_width, panel.h_longitudinal_web), point2=(float(web_location) + half_flange_width, panel.h_longitudinal_web))
+    model.sketches['geometry'].HorizontalConstraint(entity=model.sketches['geometry'].geometry[2 + index], addUndoState=False)
 
-model.parts['flange'].BaseShellExtrude(depth=panel.length, sketch=model.sketches['profileSketch'])
-del model.sketches['profileSketch']
+model.parts['flange'].BaseShellExtrude(depth=panel.length, sketch=model.sketches['geometry'])
+del model.sketches['geometry']
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Material & Section Definitions
@@ -505,7 +661,7 @@ for index in range(len(ThicknessList)):
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
     material='steel',
-    name='t-' + str(ThicknessList[index]),
+    name="t-{}".format(ThicknessList[index]),
     nodalThicknessField='',
     numIntPts=5,
     poissonDefinition=DEFAULT,
@@ -516,6 +672,25 @@ for index in range(len(ThicknessList)):
     thicknessModulus=None, 
     thicknessType=UNIFORM, 
     useDensity=OFF)
+
+# Create a new shell section that is N times the thickness of the web for local stiffness increases
+thickness_multiplier = 5
+model.HomogeneousShellSection(
+    idealization=NO_IDEALIZATION,
+    integrationRule=SIMPSON,
+    material='steel',
+    name="local-thickness",
+    nodalThicknessField='',
+    numIntPts=5,
+    poissonDefinition=DEFAULT,
+    preIntegrate=OFF,
+    temperature=GRADIENT,
+    thickness=thickness_multiplier * panel.t_longitudinal_web,
+    thicknessField='',
+    thicknessModulus=None, 
+    thicknessType=UNIFORM, 
+    useDensity=OFF
+)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -543,12 +718,18 @@ model.parts['plate'].PartFromMesh(name='plate-mesh', copySets=FALSE)
 model.parts['web'].PartFromMesh(name='web-mesh', copySets=FALSE)
 model.parts['flange'].PartFromMesh(name='flange-mesh', copySets=FALSE)
 
+plate = model.parts['plate-mesh']
+web = model.parts['web-mesh']
+flange = model.parts['flange-mesh']
+
 # Instance Transformations
 # Position the plate in the correct orientation
 
 rot_1 = math.pi / 2
 rot_2 = math.pi / 2
-displacement = -float(panel.length) / 2
+rot_plate = math.pi / 2
+web_displacement = -float(panel.length) / 2
+plate_displacement = float(panel.length) / 2
 
 # Create a homogenous transformation matrix to tranfer the part coordinate system into the assembly coordinate system and vise-versa
 '''
@@ -556,17 +737,31 @@ The following matrices are used to reference the local and global reference fram
 All reference to the coordinates of a feature in either of these reference frames must be connected via the np.dot() function to ensure correspondance
 of all points
 '''
-T = np.array([
-    [math.cos(rot_1)*math.cos(rot_2), -math.cos(rot_2)*math.sin(rot_1), math.sin(rot_2), displacement],
+T_web = np.array([
+    [math.cos(rot_1)*math.cos(rot_2), -math.cos(rot_2)*math.sin(rot_1), math.sin(rot_2), web_displacement],
     [math.sin(rot_1), math.cos(rot_1), 0, 0],
     [-math.cos(rot_1)*math.sin(rot_2), math.sin(rot_1)*math.sin(rot_2), math.cos(rot_2), 0],
     [0, 0, 0, 1]
 ])
 
-T_inv = np.array([
-    [math.cos(rot_1)*math.cos(rot_2), math.sin(rot_1), -math.cos(rot_1)*math.sin(rot_2), -displacement*math.cos(rot_1)*math.cos(rot_2)],
-    [-math.cos(rot_2)*math.sin(rot_1), math.cos(rot_1), math.sin(rot_1)*math.sin(rot_2), displacement*math.cos(rot_2)*math.sin(rot_1)],
-    [math.sin(rot_2), 0, math.cos(rot_2), -displacement*math.sin(rot_2)],
+T_inv_web = np.array([
+    [math.cos(rot_1)*math.cos(rot_2), math.sin(rot_1), -math.cos(rot_1)*math.sin(rot_2), -web_displacement*math.cos(rot_1)*math.cos(rot_2)],
+    [-math.cos(rot_2)*math.sin(rot_1), math.cos(rot_1), math.sin(rot_1)*math.sin(rot_2), web_displacement*math.cos(rot_2)*math.sin(rot_1)],
+    [math.sin(rot_2), 0, math.cos(rot_2), -web_displacement*math.sin(rot_2)],
+    [0, 0, 0, 1]
+])
+
+T_plate = np.array([
+    [math.cos(rot_plate), -math.sin(rot_plate), 0, plate_displacement],
+    [math.sin(rot_plate), math.cos(rot_plate),  0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+])
+
+T_inv_plate = np.array([
+    [math.cos(rot_plate), math.sin(rot_plate), 0, -plate_displacement * math.cos(rot_plate)],
+    [-math.sin(rot_plate), math.cos(rot_plate), 0, plate_displacement * math.sin(rot_plate)],
+    [0, 0, 1, 0],
     [0, 0, 0, 1]
 ])
 
@@ -586,24 +781,24 @@ T_inv = np.array([
 # ])
 
 # print("Forward Test")
-# print(np.dot(T, forward_test))
+# print(np.dot(T_web, forward_test))
 
 # print("Backwards Test\n")
-# print(np.dot(T_inv, backwards_test))
+# print(np.dot(T_inv_web, backwards_test))
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Assignment
-boundingLength = max(panel.length, panel.width, panel.h_longitudinal_web)
+max_domain = max(panel.length, panel.width, panel.h_longitudinal_web)
 
-# Needs to be completed after the boolean operations to ensure that the section assignment is applied to the newly created sections
-assign_section_bounds(model, 'plate', 't-' + str(panel.t_panel), [-boundingLength, boundingLength, -boundingLength, boundingLength, -boundingLength, boundingLength])
-assign_section_bounds(model, 'web', 't-' + str(panel.t_longitudinal_web), [-boundingLength, boundingLength, -boundingLength, boundingLength, -boundingLength, boundingLength])
-assign_section_bounds(model, 'flange', 't-' + str(panel.t_longitudinal_flange), [-boundingLength, boundingLength, -boundingLength, boundingLength, -boundingLength, boundingLength])
+# Assign a section to all of the elements of the parts
+assign_element_section_bounds(plate, "t-{}".format(panel.t_panel), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
+assign_element_section_bounds(web, "t-{}".format(panel.t_longitudinal_web), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
+assign_element_section_bounds(flange, "t-{}".format(panel.t_longitudinal_flange), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Find the node closest to the centroid of the face
 assembly.regenerate()
-t_offset = 0.01
+capture_offset = 0.001
 
 A_panel = panel.width * panel.t_panel
 A_web = panel.h_longitudinal_web * panel.t_longitudinal_web * panel.num_longitudinal
@@ -643,83 +838,72 @@ target_point_left = np.vstack([target_point_left, bottom_row])
 target_point_right = np.vstack([target_point_right, bottom_row])
 
 # Transform the points into the web reference frame
-target_point_left = np.dot(T_inv, target_point_left)
-target_point_right = np.dot(T_inv, target_point_right)
+target_point_left = np.dot(T_inv_web, target_point_left)
+target_point_right = np.dot(T_inv_web, target_point_right)
 
 target_point_left = tuple(target_point_left.flatten()[:3])
 target_point_right = tuple(target_point_right.flatten()[:3])
 
+# Modify the nodes along the neutral axis of the panel to line up properly
 # Must reference the points in the part reference frame, not the assembly
-move_closest_nodes_to_neutral_axis(model.parts['web-mesh'], target_point_left, axis_dof = 1, free_dof = 2)
-move_closest_nodes_to_neutral_axis(model.parts['web-mesh'], target_point_right, axis_dof = 1, free_dof = 2)
+move_closest_nodes_to_axis(model.parts['web-mesh'], target_point_left, axis_dof = 1, free_dof = 2)
+move_closest_nodes_to_axis(model.parts['web-mesh'], target_point_right, axis_dof = 1, free_dof = 2)
 
+# Change the local thickness of the elements to prevent local failure due to large input forces
+set_local_element_thickness(model.parts['web-mesh'], target_point_left, axis_dof = 1, depth_of_search = 2, set_name='left-thickness-region')
+set_local_element_thickness(model.parts['web-mesh'], target_point_right, axis_dof = 1, depth_of_search = 2, set_name='right_thickness_region')
 
+# Reference the coordinates in the global geometry and use the inverse matrix to map them into the plate geometry
+model.ConstrainedSketch(name='plate-mesh-edit', sheetSize=200.0)
+for index, web_location in enumerate(web_locations):
+    web_point = np.array([[0.0], [float(web_location)], [0.0]]) # Location of each of the webs that intersect the plate
+    # Transform back into the plate reference frame
+    web_point = np.vstack([web_point, bottom_row])
+    web_point = np.dot(T_inv_plate, web_point)
+    web_point = tuple(web_point.flatten()[:3])
 
-
-
-
-
-
-
-
-
-
-
-# Find closest nodes to target points
-closest_node_left = find_closest_node(nodes, target_point_left)
-closest_node_right = find_closest_node(nodes, target_point_right)
-
-boundary_regions = [
-    [
-        target_point_left[0] - t_offset, target_point_left[0] + t_offset,
-        -float(panel.width)/2, float(panel.width)/2,
-        closest_node_left.coordinates[2] - t_offset, closest_node_left.coordinates[2] + t_offset
-    ],
-
-    [
-    target_point_right[0] - t_offset, target_point_right[0] + t_offset,
-    -float(panel.width)/2, float(panel.width)/2,
-    closest_node_right.coordinates[2] - t_offset, closest_node_right.coordinates[2] + t_offset
-    ]
-]
-
-# Modify the mesh to allow for the correct definition of the centroidal nodes
-plate = model.parts['plate-mesh']
-web = model.parts['web-mesh']
-flange = model.parts['flange-mesh']
-
-web.SetFromNodeLabels(name='test-set', nodeLabels=(closest_node_left.label,))
-web.editNode(
-    nodes=web.sets['test-set'].nodes,
-    coordinates=(target_point_left,)
-)
+    # Align the plate mesh to the axis along the x-axis to this location
+    move_closest_nodes_to_axis(model.parts['plate-mesh'], web_point, axis_dof = 2, free_dof = 1)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Instance Creation
-assembly.Instance(dependent=ON, name='plate-1', part=model.parts['plate-mesh'])
-assembly.Instance(dependent=ON, name='web-1', part=model.parts['web-mesh'])
-assembly.Instance(dependent=ON, name='flange-1', part=model.parts['flange-mesh'])
+assembly.Instance(dependent=ON, name='plate', part=model.parts['plate-mesh'])
+assembly.Instance(dependent=ON, name='web', part=model.parts['web-mesh'])
+assembly.Instance(dependent=ON, name='flange', part=model.parts['flange-mesh'])
 
-assembly.rotate(instanceList=('plate-1',), axisPoint=(0,0,0), axisDirection=(0,0,1), angle=90)
-assembly.translate(instanceList=['plate-1'], vector=(float(panel.length)/2,0.0, 0.0))
+assembly.rotate(instanceList=('plate',), axisPoint=(0,0,0), axisDirection=(0,0,1), angle=math.degrees(rot_plate))
+assembly.translate(instanceList=['plate'], vector=(plate_displacement,0.0, 0.0))
 
 # Position the flange and web properly
-assembly.rotate(instanceList=['web-1','flange-1'], axisPoint= (0,0,0), axisDirection=(0,0,1), angle=math.degrees(rot_1))
-assembly.rotate(instanceList=['web-1','flange-1'], axisPoint= (0,0,0), axisDirection=(0,1,0), angle=math.degrees(rot_2))
-assembly.translate(instanceList=['web-1','flange-1'], vector=(displacement, 0.0, 0.0))
+assembly.rotate(instanceList=['web','flange'], axisPoint= (0,0,0), axisDirection=(0,0,1), angle=math.degrees(rot_1))
+assembly.rotate(instanceList=['web','flange'], axisPoint= (0,0,0), axisDirection=(0,1,0), angle=math.degrees(rot_2))
+assembly.translate(instanceList=['web','flange'], vector=(web_displacement, 0.0, 0.0))
 
-'''
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Collect the sets of nodes that fall along each point within web_locations and 
 
-The below sections are a work-in-progress
+plate_labels = []
+web_labels = []
+for index, web_location in enumerate(web_locations):
+    bounds = [-max_domain, max_domain, web_location - capture_offset, web_location + capture_offset, -capture_offset, capture_offset]
 
+    # Find the plate nodes that lie under the contact area of the web
+    _, new_labels = create_node_set(assembly, 'temp-plate-node-set-{}'.format(index), instance_name = 'plate', bounds = bounds)
+    plate_labels.extend(new_labels)
 
+    # Find the web nodes that lie above the contact area on the plate
+    _, new_labels = create_node_set(assembly, 'temp-web-node-set-{}'.format(index), instance_name = 'web', bounds = bounds)
+    web_labels.extend(new_labels)
 
-'''
-
-
-
-
-
+    model.Tie(
+        name="Constraint{}".format(index),
+        main=assembly.sets['temp-plate-node-set-{}'.format(index)],
+        secondary=assembly.sets['temp-web-node-set-{}'.format(index)],
+        adjust=ON,
+        positionToleranceMethod=COMPUTED,
+        tieRotations=ON,
+        thickness=ON
+    )
 
 
 
@@ -748,7 +932,7 @@ The below sections are a work-in-progress
 from itertools import chain
 
 # === Constants ===
-t_offset = 0.01
+capture_offset = 0.01
 half_width = panel.width / 2
 half_length = panel.length / 2
 h_long = panel.h_longitudinal_web
@@ -761,8 +945,8 @@ edge_list = ['web-1'] * 2
 
 # === Bounding Boxes ===
 bounds = [
-    [-half_length, half_length, -half_width, half_width, -t_offset, t_offset],                            # plate
-    [-half_length, half_length, -half_width, half_width, h_long - t_offset, h_long + t_offset],           # flange
+    [-half_length, half_length, -half_width, half_width, -capture_offset, capture_offset],                            # plate
+    [-half_length, half_length, -half_width, half_width, h_long - capture_offset, h_long + capture_offset],           # flange
 ]
 
 # === Index Maps ===
@@ -793,15 +977,15 @@ for i in range(len(constraint_index)):
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Boundary Conditions
 
-t_offset = 0.01
+capture_offset = 0.01
 boundary_regions = [
     # X-Aligned BCs
-    [float(panel.length)/2 - t_offset, float(panel.length)/2 + t_offset, -float(panel.width)/2, float(panel.width)/2, -t_offset, panel.h_longitudinal_web + t_offset],
-    [-float(panel.length)/2 - t_offset, -float(panel.length)/2 + t_offset, -float(panel.width)/2, float(panel.width)/2, -t_offset, panel.h_longitudinal_web + t_offset],
+    [float(panel.length)/2 - capture_offset, float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, panel.h_longitudinal_web + capture_offset],
+    [-float(panel.length)/2 - capture_offset, -float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, panel.h_longitudinal_web + capture_offset],
         
     # Y-Aligned BCs
-    [-float(panel.length)/2, float(panel.length)/2, float(panel.width)/2 - t_offset, float(panel.width)/2 + t_offset, -t_offset, panel.h_longitudinal_web + t_offset],
-    [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - t_offset, -float(panel.width)/2 + t_offset, -t_offset, panel.h_longitudinal_web + t_offset]
+    [-float(panel.length)/2, float(panel.length)/2, float(panel.width)/2 - capture_offset, float(panel.width)/2 + capture_offset, -capture_offset, panel.h_longitudinal_web + capture_offset],
+    [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - capture_offset, -float(panel.width)/2 + capture_offset, -capture_offset, panel.h_longitudinal_web + capture_offset]
     ]
 
 boundary_list = [
@@ -865,15 +1049,15 @@ closest_node_right = find_closest_node(nodes, target_point_right)
 
 boundary_regions = [
     [
-        target_point_left[0] - t_offset, target_point_left[0] + t_offset,
+        target_point_left[0] - capture_offset, target_point_left[0] + capture_offset,
         -float(panel.width)/2, float(panel.width)/2,
-        closest_node_left.coordinates[2] - t_offset, closest_node_left.coordinates[2] + t_offset
+        closest_node_left.coordinates[2] - capture_offset, closest_node_left.coordinates[2] + capture_offset
     ],
 
     [
-    target_point_right[0] - t_offset, target_point_right[0] + t_offset,
+    target_point_right[0] - capture_offset, target_point_right[0] + capture_offset,
     -float(panel.width)/2, float(panel.width)/2,
-    closest_node_right.coordinates[2] - t_offset, closest_node_right.coordinates[2] + t_offset
+    closest_node_right.coordinates[2] - capture_offset, closest_node_right.coordinates[2] + capture_offset
     ]
 ]
 
