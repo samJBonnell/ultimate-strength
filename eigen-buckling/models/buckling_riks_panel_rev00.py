@@ -236,38 +236,45 @@ def assign_section_point(model, part_name, section_name, catch_points):
     )
     print("[assign_section_point] Assigned section '{}' to {} face(s) on part '{}'.".format(section_name, len(faces), part_name))
 
-def assign_section_bounds(model, part_name, section_name, bounds):
-    """Assign a section to all faces within a bounding box."""
-    x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    faces = model.parts[part_name].faces.getByBoundingBox(
-        xMin=x_min, xMax=x_max,
-        yMin=y_min, yMax=y_max,
-        zMin=z_min, zMax=z_max
-    )
-    if not faces:
-        raise ValueError("[assign_section_bounds] No faces found for section assignment in bounds {} on part '{}'.".format(bounds, part_name))
-    model.parts[part_name].Set(name='sectionAssignment', faces=faces)
-    model.parts[part_name].SectionAssignment(
-        region=model.parts[part_name].sets['sectionAssignment'],
-        sectionName=section_name,
-        offset=0.0,
-        offsetField='',
-        offsetType=MIDDLE_SURFACE,
-        thicknessAssignment=FROM_SECTION
-    )
-    print("[assign_section_bounds] Assigned section '{}' to {} face(s) on part '{}'.".format(section_name, len(faces), part_name))
+def assign_section_bounds(part, section_name, bounds, target_type="faces"):
+    """
+    Assign a section to all faces or elements within a bounding box.
 
-def assign_element_section_bounds(part, section_name, bounds):
-    """Assign a section to all faces within a bounding box."""
+    Parameters
+    ----------
+    part : Part
+        The Abaqus part object.
+    section_name : str
+        Name of the section to assign.
+    bounds : tuple
+        Bounding box in the form (x_min, x_max, y_min, y_max, z_min, z_max).
+    target_type : str, optional
+        Either 'faces' or 'elements'. Default is 'faces'.
+    """
     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    elements = part.elements.getByBoundingBox(
-        xMin=x_min, xMax=x_max,
-        yMin=y_min, yMax=y_max,
-        zMin=z_min, zMax=z_max
-    )
-    if not elements:
-        raise ValueError("[assign_section_bounds] No elements found for section assignment in bounds {} on part '{}'.".format(bounds, part))
-    part.Set(name='sectionAssignment', elements=elements)
+    
+    # Select the target collection
+    if target_type.lower() == "faces":
+        targets = part.faces.getByBoundingBox(
+            xMin=x_min, xMax=x_max,
+            yMin=y_min, yMax=y_max,
+            zMin=z_min, zMax=z_max
+        )
+    elif target_type.lower() == "elements":
+        targets = part.elements.getByBoundingBox(
+            xMin=x_min, xMax=x_max,
+            yMin=y_min, yMax=y_max,
+            zMin=z_min, zMax=z_max
+        )
+    else:
+        raise ValueError("[assign_section_bounds] target_type must be 'faces' or 'elements'.")
+
+    if not targets:
+        raise ValueError("[assign_section_bounds] No {} found for section assignment in bounds {} on part '{}'.".format(
+            target_type, bounds, part.name))
+
+    # Create set and assign section
+    part.Set(name='sectionAssignment', **{target_type: targets})
     part.SectionAssignment(
         region=part.sets['sectionAssignment'],
         sectionName=section_name,
@@ -276,35 +283,9 @@ def assign_element_section_bounds(part, section_name, bounds):
         offsetType=MIDDLE_SURFACE,
         thicknessAssignment=FROM_SECTION
     )
-    print("[assign_section_bounds] Assigned section '{}' to {} element(s) on part '{}'.".format(section_name, len(elements), part.name))
 
-# def create_node_set(assembly, set_name, instance_name, bounds):
-#     """Create a node set using faces found within a bounding box."""
-#     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-#     nodes = assembly.instances[instance_name].nodes.getByBoundingBox(
-#         xMin=x_min, xMax=x_max,
-#         yMin=y_min, yMax=y_max,
-#         zMin=z_min, zMax=z_max
-#     )
-#     if not nodes:
-#         raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, instance_name))
-#     assembly.Set(name=set_name, nodes=nodes)  # This line assumes face-based node selection
-#     print("[create_node_set] Created face-based node set '{}' with {} face(s) on instance '{}'.".format(set_name, len(nodes), instance_name))
-#     return nodes
-
-# def create_node_set_part(part, set_name, part_name, bounds):
-#     """Create a node set using faces found within a bounding box."""
-#     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-#     nodes = part.nodes.getByBoundingBox(
-#         xMin=x_min, xMax=x_max,
-#         yMin=y_min, yMax=y_max,
-#         zMin=z_min, zMax=z_max
-#     )
-#     if not nodes:
-#         raise ValueError("[create_node_set] No nodes found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, part_name))
-#     part.Set(name=set_name, nodes=nodes)  # This line assumes face-based node selection
-#     print("[create_node_set] Created face-based node set '{}' with {} face(s) on part '{}'.".format(set_name, len(nodes), part_name))
-#     return nodes
+    print("[assign_section_bounds] Assigned section '{}' to {} {}(s) on part '{}'.".format(
+        section_name, len(targets), target_type[:-1], part.name))
 
 def create_node_set(container, set_name, instance_name=None, bounds=None):
     """
@@ -423,7 +404,7 @@ def find_closest_node(nodes, target_point, min_dist=1e20):
             min_dist = dist
             closest_node = node
 
-    return closest_node
+    return closest_node, closest_node.label
 
 def get_nodes_along_axis(nodes, reference_point, dof, max_bound, capture_offset):    
     lower = [reference_point[0] - capture_offset,
@@ -442,7 +423,7 @@ def get_nodes_along_axis(nodes, reference_point, dof, max_bound, capture_offset)
 
 def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
     """Move the closest nodes along the axis_dof direction to target_point along the free_dof direction"""
-    reference_point = find_closest_node(part.nodes, target_point)
+    reference_point, _ = find_closest_node(part.nodes, target_point)
 
     # Capture all of the points on the part that lie along the line of action of the dof
     capture_offset = 0.001
@@ -452,7 +433,6 @@ def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
     nodes = get_nodes_along_axis(part.nodes, reference_point.coordinates, axis_dof, max_bound, capture_offset)
 
     for node in nodes:
-        #print("Node: '{}'- Position: '{}'".format(node.label, node.coordinates))
         # Find the coordinates of the point and presribe the neutral axis location
         temp_coords = node.coordinates
 
@@ -463,9 +443,12 @@ def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
         part.editNode(nodes=(node,), coordinates=(tuple(coordinates),))
         print("[move_closest_nodes_to_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
 
+    labels = [node.label for node in nodes]
+    return nodes, labels
+
 def set_local_element_thickness(part, target_point, axis_dof, section_name='local-thickness', depth_of_search=1, set_name='temp'):
     """Assign a section to elements connected along an axis, expanding out by edge-sharing neighbours."""
-    reference_point = find_closest_node(part.nodes, target_point)
+    reference_point, _ = find_closest_node(part.nodes, target_point)
 
     capture_offset = 0.001
     max_bound = 1e5
@@ -599,7 +582,6 @@ del model.sketches['geometry']
 
 model.ConstrainedSketch(name='geometry', sheetSize=200.0)
 for index, web_location in enumerate(web_locations):
-    print(index)
     model.sketches['geometry'].Line(point1=(float(web_location), 0.0), point2=(float(web_location), panel.h_longitudinal_web))
     model.sketches['geometry'].VerticalConstraint(entity=model.sketches['geometry'].geometry[2 + index], addUndoState=False)
 
@@ -699,16 +681,6 @@ model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Define loading steps
-
-model.BuckleStep(
-    name='Buckle-Step',
-    previous='Initial',
-    numEigen=5,
-    maxIterations=500
-)
-
-# ----------------------------------------------------------------------------------------------------------------------------------
 # Meshing the Part
 mesh(model.parts['plate'], panel.mesh_plate)
 mesh(model.parts['web'], panel.mesh_longitudinal_web)
@@ -790,10 +762,9 @@ T_inv_plate = np.array([
 # Section Assignment
 max_domain = max(panel.length, panel.width, panel.h_longitudinal_web)
 
-# Assign a section to all of the elements of the parts
-assign_element_section_bounds(plate, "t-{}".format(panel.t_panel), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
-assign_element_section_bounds(web, "t-{}".format(panel.t_longitudinal_web), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
-assign_element_section_bounds(flange, "t-{}".format(panel.t_longitudinal_flange), [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain])
+assign_section_bounds(part = plate, section_name = "t-{}".format(panel.t_panel), bounds = [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain], target_type = 'elements')
+assign_section_bounds(part = web, section_name = "t-{}".format(panel.t_longitudinal_web), bounds = [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain], target_type = 'elements')
+assign_section_bounds(part = flange, section_name = "t-{}".format(panel.t_longitudinal_flange), bounds = [-max_domain, max_domain, -max_domain, max_domain, -max_domain, max_domain], target_type = 'elements')
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Find the node closest to the centroid of the face
@@ -846,12 +817,12 @@ target_point_right = tuple(target_point_right.flatten()[:3])
 
 # Modify the nodes along the neutral axis of the panel to line up properly
 # Must reference the points in the part reference frame, not the assembly
-move_closest_nodes_to_axis(model.parts['web-mesh'], target_point_left, axis_dof = 1, free_dof = 2)
-move_closest_nodes_to_axis(model.parts['web-mesh'], target_point_right, axis_dof = 1, free_dof = 2)
+_, centroid_node_labels_left = move_closest_nodes_to_axis(part=web, target_point=target_point_left, axis_dof = 1, free_dof = 2)
+_, centroid_node_labels_right = move_closest_nodes_to_axis(part=web, target_point=target_point_right, axis_dof = 1, free_dof = 2)
 
 # Change the local thickness of the elements to prevent local failure due to large input forces
-set_local_element_thickness(model.parts['web-mesh'], target_point_left, axis_dof = 1, depth_of_search = 2, set_name='left-thickness-region')
-set_local_element_thickness(model.parts['web-mesh'], target_point_right, axis_dof = 1, depth_of_search = 2, set_name='right_thickness_region')
+set_local_element_thickness(part=web, target_point=target_point_left, axis_dof = 1, depth_of_search = 2, set_name='left-thickness-region')
+set_local_element_thickness(part=web, target_point=target_point_right, axis_dof = 1, depth_of_search = 2, set_name='right_thickness_region')
 
 # Reference the coordinates in the global geometry and use the inverse matrix to map them into the plate geometry
 model.ConstrainedSketch(name='plate-mesh-edit', sheetSize=200.0)
@@ -863,7 +834,7 @@ for index, web_location in enumerate(web_locations):
     web_point = tuple(web_point.flatten()[:3])
 
     # Align the plate mesh to the axis along the x-axis to this location
-    move_closest_nodes_to_axis(model.parts['plate-mesh'], web_point, axis_dof = 2, free_dof = 1)
+    _, _ = move_closest_nodes_to_axis(model.parts['plate-mesh'], web_point, axis_dof = 2, free_dof = 1)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Instance Creation
@@ -905,79 +876,23 @@ for index, web_location in enumerate(web_locations):
         thickness=ON
     )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Creation of surface and edge indexing to allow constraint creation parametrically!
-from itertools import chain
+# Rigid Body Motion Constraint
+# Define a constraint point to limit the x-2 displacement of the panel to prevent RBM
+constraint_point = np.array([[0.0], [0.0], [0.0]])
+# Transform into the plate reference frame
+constraint_point = np.vstack([constraint_point, bottom_row])
+constraint_point = np.dot(T_inv_plate, constraint_point)
+constraint_point = tuple(constraint_point.flatten()[:3])
 
-# === Constants ===
-capture_offset = 0.01
-half_width = panel.width / 2
-half_length = panel.length / 2
-h_long = panel.h_longitudinal_web
+_, label = find_closest_node(plate.nodes, constraint_point)
+middle_node = assembly.instances['plate'].nodes.sequenceFromLabels((label,))
+constraint_set = assembly.Set(name='middle-bc', nodes=(middle_node,))
 
-# === Surface Names ===
-surface_list = ['plate-1', 'flange-1']
+# Constrain in the x-2 direction, and allow all other motion
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Middle-BC', region=assembly.sets['middle-bc'], u2=0.0)
 
-# === Edge Names ===
-edge_list = ['web-1'] * 2
-
-# === Bounding Boxes ===
-bounds = [
-    [-half_length, half_length, -half_width, half_width, -capture_offset, capture_offset],                            # plate
-    [-half_length, half_length, -half_width, half_width, h_long - capture_offset, h_long + capture_offset],           # flange
-]
-
-# === Index Maps ===
-surface_index = [0, 1]
-edge_index = [0, 1]
-constraint_index = edge_index
-
-# === Create surface sets ===
-for i, surface_name in enumerate(surface_list):
-    create_surface_bounds(assembly, "surf-{}".format(i), surface_name, bounds[surface_index[i]])
-
-# === Create edge sets ===
-for i, edge_name in enumerate(edge_list):
-    create_edge_set_bounds(assembly, "edge-{}".format(i), edge_name, bounds[edge_index[i]])
-
-# === Create tie constraints ===
-for i in range(len(constraint_index)):
-    model.Tie(
-        name="Constraint{}".format(i),
-        main=assembly.surfaces["surf-{}".format(constraint_index[i])],
-        secondary=assembly.sets["edge-{}".format(i)],
-        adjust=ON,
-        positionToleranceMethod=COMPUTED,
-        tieRotations=ON,
-        thickness=ON
-    )
-
-# --------------------------------------------------------------------------------------------------------------------------------------------
-# Boundary Conditions
-
-capture_offset = 0.01
+# Plate-edge BC (zero motion in x3 direction)
 boundary_regions = [
     # X-Aligned BCs
     [float(panel.length)/2 - capture_offset, float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, panel.h_longitudinal_web + capture_offset],
@@ -988,139 +903,146 @@ boundary_regions = [
     [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - capture_offset, -float(panel.width)/2 + capture_offset, -capture_offset, panel.h_longitudinal_web + capture_offset]
     ]
 
-boundary_list = [
-    ['plate-1', 'web-1', 'flange-1']
+# Capture all of the edges of the plate
+labels = []
+for index, region in enumerate(boundary_regions):
+    _, new_labels = create_node_set(assembly, 'simply-supported-edge-{}'.format(index), 'plate', region)
+    labels.extend(new_labels)
+
+plate_edge_BC_nodes = assembly.instances['plate'].nodes.sequenceFromLabels(labels)
+plate_edge_set = assembly.Set(name='plate-edge', nodes=plate_edge_BC_nodes)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Edge-BC', region=plate_edge_set, u3=0.0)
+
+# Link together all of the rings of nodes for a given stiffener
+created_sets = set()
+dof = 2
+
+for index, web_location in enumerate(web_locations):
+    labels = []  # Reset labels for each ring
+
+    bounds_1 = [
+        -(panel.length / 2) - capture_offset,
+        -(panel.length / 2) + capture_offset,
+        web_location - capture_offset,
+        web_location + capture_offset,
+        -capture_offset,
+        panel.h_longitudinal_web + capture_offset,
+    ]
+    bounds_2 = [
+        (panel.length / 2) - capture_offset,
+        (panel.length / 2) + capture_offset,
+        web_location - capture_offset,
+        web_location + capture_offset,
+        -capture_offset,
+        panel.h_longitudinal_web + capture_offset,
     ]
 
-# Rigid Boundary Conditions
-e1 = create_edge_set_bounds(assembly, 'TempSet-1', boundary_list[0][0], boundary_regions[0])
-e2 = create_edge_set_bounds(assembly, 'TempSet-2', boundary_list[0][1], boundary_regions[0])
-e3 = create_edge_set_bounds(assembly, 'TempSet-3', boundary_list[0][2], boundary_regions[0])
+    # Create node sets & get labels for each side of the ring
+    _, new_label_1 = create_node_set(assembly, 'periodic-{}-1'.format(index), 'web', bounds=bounds_1)
+    labels.extend(new_label_1)
+    _, new_label_2 = create_node_set(assembly, 'periodic-{}-2'.format(index), 'web', bounds=bounds_2)
+    labels.extend(new_label_2)
 
-tempSet = e1
-#tempSet = e1 + e2 + e3
-assembly.Set(edges=tempSet, name='End')
+    labels.sort()
 
-# Sliding Boundary Conditions
-e1 = create_edge_set_bounds(assembly, 'TempSet-4', boundary_list[0][0], boundary_regions[2])
-e2 = create_edge_set_bounds(assembly, 'TempSet-5', boundary_list[0][0], boundary_regions[3])
+    # Sliding window of size 2 over labels
+    window_size = 2
+    for j in range(len(labels) - window_size + 1):
+        lbl_1, lbl_2 = labels[j : j + window_size]
 
-tempSet = e1 + e2
-assembly.Set(edges=tempSet, name='Sides')
+        # Create node sets if not already created
+        if lbl_1 not in created_sets:
+            created_sets.add(lbl_1)
+            assembly.Set(
+                name='periodic-node-{}-{}'.format(index, lbl_1),
+                nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_1,)),
+            )
+        if lbl_2 not in created_sets:
+            created_sets.add(lbl_2)
+            assembly.Set(
+                name='periodic-node-{}-{}'.format(index, lbl_2),
+                nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_2,)),
+            )
 
-# Sliding Boundary Conditions
-e1 = create_edge_set_bounds(assembly, 'TempSet-6', boundary_list[0][0], boundary_regions[1])
-e2 = create_edge_set_bounds(assembly, 'TempSet-7', boundary_list[0][1], boundary_regions[1])
-e3 = create_edge_set_bounds(assembly, 'TempSet-8', boundary_list[0][2], boundary_regions[1])
+        # Create the equation linking dof=2 of both nodes
+        model.Equation(
+            name='Periodic-Equation-{}-{}'.format(index, j),
+            terms=(
+                (-1.0, 'periodic-node-{}-{}'.format(index, lbl_1), dof),
+                (1.0, 'periodic-node-{}-{}'.format(index, lbl_2), dof),
+            ),
+        )
 
-tempSet = e1
-assembly.Set(edges=tempSet, name='Free-Sides')
+# Define the boundary conditions on the neutral axis of the fixed end of the panel
+# We have, from before: centroid_node_labels_left, centroid_node_labels_right (fixed)
+# Create boundary set for fixed side:
+
+fixed_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_right)
+fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_centroid_BC_nodes)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0, u2=0.0, u3=0.0)
+
+# Tie the end of the panel together as well
+free_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_left)
+free_centroid_BC = assembly.Set(name='Fixed-BC', nodes=free_centroid_BC_nodes)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=free_centroid_BC, u2=0.0, u3=0.0)
+
+created_sets = set()
+window_size = 2
+# Constrain the x-displacement of the free end of the panel via Equations
+dof = 1
+
+for index in range(len(centroid_node_labels_left) - window_size + 1):
+    lbl_1, lbl_2 = centroid_node_labels_left[index : index + window_size]
+    # Create node sets if not already created
+    if lbl_1 not in created_sets:
+        created_sets.add(lbl_1)
+        assembly.Set(
+            name='free-node-{}'.format(lbl_1),
+            nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_1,)),
+        )
+    if lbl_2 not in created_sets:
+        created_sets.add(lbl_2)
+        assembly.Set(
+            name='free-node-{}'.format(lbl_2),
+            nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_2,)),
+        )
+    # Create the equation linking dof=2 of both nodes
+    model.Equation(
+        name='Free-End-Equation-{}'.format(index),
+        terms=(
+            (-1.0, 'free-node-{}'.format(lbl_1), dof),
+            (1.0, 'free-node-{}'.format(lbl_2), dof),
+        ),
+    )
+
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# Load conditions!
+# Load application
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Create displacement boundary conditions and apply a pressure to the whole assembly
+# Define loading steps
 
-assembly.regenerate()
+load_nodes = assembly.instances['web'].nodes.sequenceFromLabels((centroid_node_labels_left[0],))
+load_set = assembly.Set(name='load_set', nodes=load_nodes)
+load_region = regionToolset.Region(nodes=load_nodes)
+# Create Step Object
+model.StaticRiksStep(
+    name='Riks-Step',
+    previous='Initial',
+    nlgeom=ON,
+    initialArcInc=0.001,
+    maxArcInc=0.5,
+    maxNumInc=500,
+    nodeOn=ON,
+    region=load_region,
+    dof=1,
+    maximumDisplacement=0.5
+)
 
-A_panel = panel.width * panel.t_panel
-A_web = panel.h_longitudinal_web * panel.t_longitudinal_web * panel.num_longitudinal
-A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
-
-y_panel = panel.t_panel / 2
-y_web = panel.t_panel + (panel.h_longitudinal_web) / 2
-y_flange = (panel.t_panel / 2) + panel.h_longitudinal_web + (panel.t_longitudinal_flange / 2)
-
-# If the TIE constraints defined between the edges and the surfaces are not set with thickness=ON, you need to consider the panels to each start at the half-thickness of the surface
-centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange)
-
-# Apply load to the left most edge of the panel
-web_step = panel.width / (panel.num_longitudinal + 1)
-current_step = web_step
-
-instance = assembly.instances['web-1']
-nodes = instance.nodes
-
-# Define left and right target points at web locations
-target_point_left = (-float(panel.length / 2), -(float(panel.width) / 2) + web_step, centroid)
-target_point_right = (float(panel.length / 2), -(float(panel.width) / 2) + web_step, centroid)
-
-# Find closest nodes to target points
-closest_node_left = find_closest_node(nodes, target_point_left)
-closest_node_right = find_closest_node(nodes, target_point_right)
-
-boundary_regions = [
-    [
-        target_point_left[0] - capture_offset, target_point_left[0] + capture_offset,
-        -float(panel.width)/2, float(panel.width)/2,
-        closest_node_left.coordinates[2] - capture_offset, closest_node_left.coordinates[2] + capture_offset
-    ],
-
-    [
-    target_point_right[0] - capture_offset, target_point_right[0] + capture_offset,
-    -float(panel.width)/2, float(panel.width)/2,
-    closest_node_right.coordinates[2] - capture_offset, closest_node_right.coordinates[2] + capture_offset
-    ]
-]
-
-# Create node sets using bounding boxes
-create_node_set_bounds(assembly, 'Set-1', 'web-1', boundary_regions[0])
-create_node_set_bounds(assembly, 'Set-2', 'web-1', boundary_regions[1])
-
-node_labels_left = [node.label for node in assembly.sets['Set-1'].nodes]
-node_labels_right = [node.label for node in assembly.sets['Set-2'].nodes]
-
-target_nodes_left = instance.nodes.sequenceFromLabels(labels=tuple(node_labels_left))
-target_nodes_right = instance.nodes.sequenceFromLabels(labels=tuple(node_labels_right))
-
-face_region_left = regionToolset.Region(nodes=target_nodes_left)
-face_region_right = regionToolset.Region(nodes=target_nodes_right)
-
-if panel.num_longitudinal > 1:
-    ref_point_left = assembly.ReferencePoint(point=closest_node_left.coordinates)
-    ref_point_obj_left = assembly.referencePoints[ref_point_left.id]
-    ref_point_region_left = assembly.Set(referencePoints=(ref_point_obj_left,), name="Load-Point-Set-Left")
-
-    ref_point_right = assembly.ReferencePoint(point=closest_node_right.coordinates)
-    ref_point_obj_right = assembly.referencePoints[ref_point_right.id]
-    ref_point_region_right = assembly.Set(referencePoints=(ref_point_obj_right,), name="Load-Point-Set-Right")
-
-    # Left coupling
-    model.Coupling(
-        name='LoadCoupling',
-        controlPoint=ref_point_region_left,
-        surface=face_region_left,
-        influenceRadius=WHOLE_SURFACE,
-        couplingType=DISTRIBUTING,
-        localCsys=None,
-        u1=ON, u2=ON, u3=ON,
-        ur1=OFF, ur2=OFF, ur3=OFF
-    )
-
-    # Right coupling
-    model.Coupling(
-        name='LoadCoupling_Two',
-        controlPoint=ref_point_region_right,
-        surface=face_region_right,
-        influenceRadius=WHOLE_SURFACE,
-        couplingType=DISTRIBUTING,
-        localCsys=None,
-        u1=ON, u2=ON, u3=ON,
-        ur1=OFF, ur2=OFF, ur3=OFF
-    )
-
-# Side boundary conditions
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=face_region_right, u1=0.0, u2=0.0, u3=0.0)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-Side-BC', region=assembly.sets['End'], u2=0.0, u3=0.0)
-
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Side-BC', region=assembly.sets['Sides'], u3=0.0)
-
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Free-BC', region=face_region_left, u2=0.0, u3=0.0)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Free-Side-BC', region=assembly.sets['Free-Sides'], u3=0.0)
-
-# Load application
 model.ConcentratedForce(
     name="Load",
-    createStepName="Buckle-Step",
-    region=face_region_left,
+    createStepName="Riks-Step",
+    region=load_set,
     distributionType=UNIFORM,
     cf1=float(panel.axial_force),
     cf2=0.0,
@@ -1129,6 +1051,7 @@ model.ConcentratedForce(
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Create Job
+
 job = mdb.Job(
     atTime=None,
     contactPrint=OFF,
@@ -1157,6 +1080,3 @@ job = mdb.Job(
 )
 
 job.writeInput()
-
-job.submit(consistencyChecking=OFF)
-job.waitForCompletion()
