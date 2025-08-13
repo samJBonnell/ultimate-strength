@@ -53,9 +53,9 @@ panel = PanelInput(
     axial_force = 10000000,
 
     # Mesh Settings
-    mesh_plate = 0.05,
-    mesh_longitudinal_web = 0.05,
-    mesh_longitudinal_flange = 0.05
+    mesh_plate = 0.025,
+    mesh_longitudinal_web = 0.025,
+    mesh_longitudinal_flange = 0.025
 )
 
 trial = 'buckling_riks_panel'

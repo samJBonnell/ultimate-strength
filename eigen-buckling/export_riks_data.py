@@ -1,10 +1,10 @@
 from odbAccess import openOdb
 
-odb_path = "buckling_riks_uc.odb"
-imperfection = '0.006'
+odb_path = "buckling_riks_panel.odb"
+imperfection = '1'
 odb = openOdb(odb_path, readOnly=True)
 
-load_point_node = odb.rootAssembly.nodeSets['MONITORING-SET']
+load_point_node = odb.rootAssembly.nodeSets['LOAD_SET']
 
 fd_curve = []
 
