@@ -23,9 +23,9 @@ UC1 = PanelInput(
     axial_force = 10000000,
 
     # Mesh Settings
-    mesh_plate = 0.05,
-    mesh_longitudinal_web = 0.05,
-    mesh_longitudinal_flange = 0.05
+    mesh_plate = 0.025,
+    mesh_longitudinal_web = 0.025,
+    mesh_longitudinal_flange = 0.025
 )
 
 panel = PanelInput(
@@ -50,11 +50,15 @@ panel = PanelInput(
     axial_force = 10000000,
 
     # Mesh Settings
-    mesh_plate = 0.05,
-    mesh_longitudinal_web = 0.05,
-    mesh_longitudinal_flange = 0.05
+    mesh_plate = 0.025,
+    mesh_longitudinal_web = 0.025,
+    mesh_longitudinal_flange = 0.025
 )
 
 fem = FiniteElementModel("models\\buckling_eigen_panel.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
 fem.write(panel)
 fem.run()
+
+#fem = FiniteElementModel("models\\buckling_eigen_uc.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
+#fem.write(UC1)
+#fem.run()
