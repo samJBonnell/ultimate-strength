@@ -681,6 +681,22 @@ model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
 
 # ----------------------------------------------------------------------------------------------------------------------------------
+# Define loading steps
+
+model.BuckleStep(
+    name='Buckle-Step',
+    previous='Initial',
+    numEigen=5,
+    maxIterations=500
+)
+
+#model.StaticStep(
+#    name='Buckle-Step',
+#    previous='Initial',
+#    nlgeom=OFF
+#)
+
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Meshing the Part
 mesh(model.parts['plate'], panel.mesh_plate)
 mesh(model.parts['web'], panel.mesh_longitudinal_web)
@@ -876,6 +892,30 @@ for index, web_location in enumerate(web_locations):
         thickness=ON
     )
 
+web_labels = []
+flange_labels = []
+for index, web_location in enumerate(web_locations):
+    bounds = [-max_domain, max_domain, web_location - capture_offset, web_location + capture_offset, panel.h_longitudinal_web - capture_offset, panel.h_longitudinal_web + capture_offset]
+    print(index)
+
+    # Find the plate nodes that lie under the contact area of the web
+    _, new_labels = create_node_set(assembly, 'temp-web-upper-node-set-{}'.format(index), instance_name = 'web', bounds = bounds)
+    web_labels.extend(new_labels)
+
+    # Find the web nodes that lie above the contact area on the plate
+    _, new_labels = create_node_set(assembly, 'temp-flange-node-set-{}'.format(index), instance_name = 'flange', bounds = bounds)
+    flange_labels.extend(new_labels)
+
+    model.Tie(
+        name="Constraint{}".format(index + len(web_locations)),
+        main=assembly.sets['temp-web-upper-node-set-{}'.format(index)],
+        secondary=assembly.sets['temp-flange-node-set-{}'.format(index)],
+        adjust=ON,
+        positionToleranceMethod=COMPUTED,
+        tieRotations=ON,
+        thickness=ON
+    )
+
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Rigid Body Motion Constraint
 # Define a constraint point to limit the x-2 displacement of the panel to prevent RBM
@@ -925,16 +965,16 @@ for index, web_location in enumerate(web_locations):
         -(panel.length / 2) + capture_offset,
         web_location - capture_offset,
         web_location + capture_offset,
-        -capture_offset,
-        panel.h_longitudinal_web + capture_offset,
+        capture_offset,
+        panel.h_longitudinal_web - capture_offset,
     ]
     bounds_2 = [
         (panel.length / 2) - capture_offset,
         (panel.length / 2) + capture_offset,
         web_location - capture_offset,
         web_location + capture_offset,
-        -capture_offset,
-        panel.h_longitudinal_web + capture_offset,
+        capture_offset,
+        panel.h_longitudinal_web - capture_offset,
     ]
 
     # Create node sets & get labels for each side of the ring
@@ -982,9 +1022,9 @@ fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_centroid_BC_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0, u2=0.0, u3=0.0)
 
 # Tie the end of the panel together as well
-free_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_left)
-free_centroid_BC = assembly.Set(name='Fixed-BC', nodes=free_centroid_BC_nodes)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=free_centroid_BC, u2=0.0, u3=0.0)
+# free_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_left)
+# free_centroid_BC = assembly.Set(name='Fixed-BC', nodes=free_centroid_BC_nodes)
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=free_centroid_BC, u3=0.0)
 
 created_sets = set()
 window_size = 2
@@ -1019,29 +1059,11 @@ for index in range(len(centroid_node_labels_left) - window_size + 1):
 # Load conditions!
 # Load application
 
-# ----------------------------------------------------------------------------------------------------------------------------------
-# Define loading steps
-
 load_nodes = assembly.instances['web'].nodes.sequenceFromLabels((centroid_node_labels_left[0],))
 load_set = assembly.Set(name='load_set', nodes=load_nodes)
-load_region = regionToolset.Region(nodes=load_nodes)
-# Create Step Object
-model.StaticRiksStep(
-    name='Riks-Step',
-    previous='Initial',
-    nlgeom=ON,
-    initialArcInc=0.001,
-    maxArcInc=0.5,
-    maxNumInc=500,
-    nodeOn=ON,
-    region=load_region,
-    dof=1,
-    maximumDisplacement=0.5
-)
-
 model.ConcentratedForce(
     name="Load",
-    createStepName="Riks-Step",
+    createStepName="Buckle-Step",
     region=load_set,
     distributionType=UNIFORM,
     cf1=float(panel.axial_force),
@@ -1080,3 +1102,6 @@ job = mdb.Job(
 )
 
 job.writeInput()
+
+job.submit(consistencyChecking=OFF)
+job.waitForCompletion()
