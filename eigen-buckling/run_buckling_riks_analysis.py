@@ -53,9 +53,9 @@ panel = PanelInput(
     axial_force = 10000000,
 
     # Mesh Settings
-    mesh_plate = 0.025,
-    mesh_longitudinal_web = 0.025,
-    mesh_longitudinal_flange = 0.025
+    mesh_plate = 0.05,
+    mesh_longitudinal_web = 0.05,
+    mesh_longitudinal_flange = 0.05
 )
 
 trial = 'buckling_riks_panel'
@@ -81,7 +81,7 @@ imperfection_block = [
 # Define the field output block
 field_output_block = [
     '*OUTPUT, FIELD\n',
-    '*NODE OUTPUT, NSET=Monitoring-Set\n',
+    '*NODE OUTPUT, NSET=load_set\n',
     'U, RF\n'
 ]
 
