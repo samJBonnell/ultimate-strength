@@ -40,7 +40,7 @@ output_directory = r'data\\output.jsonl'
 os.chdir(working_directory)
 
 # !!! Set correct job name
-job_name = 'buckling_riks_panel'
+job_name = 'buckling_eigen_panel'
 
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
@@ -156,7 +156,6 @@ class PanelOutput(object):
             "job_name": self.job_name,
             "steps": self.steps
         }
-
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Function Definitions
@@ -380,7 +379,7 @@ def write_trial_ndjson_gz(output, path="results.jsonl.gz"):
         json_line = json.dumps(output.to_dict()) + "\n"
         f.write(json_line.encode("utf-8"))
 
-def find_closest_node(container, reference_point, instance_name=None, min_dist=1e20):
+def find_closest_node(nodes, target_point, min_dist=1e20):
     """
     Given a list of nodes and a point in R3, the function will return the closest
     node based on Euclidean distance.
@@ -394,20 +393,11 @@ def find_closest_node(container, reference_point, instance_name=None, min_dist=1
     -------
     Closest Abaqus Node item to target_point
     """
-
-    # Extract nodes
-    if hasattr(container, "instances") and instance_name is not None:
-        nodes = container.instances[instance_name].nodes
-    elif hasattr(container, "nodes"):
-        nodes = container.nodes
-    else:
-        raise TypeError("[find_closest_node] container must be an Assembly or Part object")
-
     for node in nodes:
         x, y, z = node.coordinates
-        dx = x - reference_point[0]
-        dy = y - reference_point[1]
-        dz = z - reference_point[2]
+        dx = x - target_point[0]
+        dy = y - target_point[1]
+        dz = z - target_point[2]
         dist = math.sqrt(dx*dx + dy*dy + dz*dz)
         if dist < min_dist:
             min_dist = dist
@@ -415,85 +405,31 @@ def find_closest_node(container, reference_point, instance_name=None, min_dist=1
 
     return closest_node, closest_node.label
 
-def get_nodes_along_axis(container, reference_point, dof, instance_name=None, capture_offset=0.001, max_bound=1e5):
-    """
-    Return nodes along a specified axis within a capture offset around a reference point.
+def get_nodes_along_axis(nodes, reference_point, dof, max_bound, capture_offset):    
+    lower = [reference_point[0] - capture_offset,
+             reference_point[1] - capture_offset,
+             reference_point[2] - capture_offset]
+    upper = [reference_point[0] + capture_offset,
+             reference_point[1] + capture_offset,
+             reference_point[2] + capture_offset]
     
-    Works for:
-    - Assembly (requires instance_name)
-    - Part (instance_name is ignored)
-    
-    Parameters
-    ----------
-    container : Assembly or Part
-        Object to search nodes in.
-    reference_point : tuple or list of 3 floats
-        (x, y, z) coordinates around which to search.
-    dof : int
-        Axis along which the nodes can vary (1=x, 2=y, 3=z)
-    capture_offset : float
-        Small tolerance around the other two coordinates.
-    max_bound : float
-        Maximum distance to search along the dof axis.
-    instance_name : str, optional
-        Required if container is an Assembly.
-    
-    Returns
-    -------
-    tuple
-        (nodes, labels) where:
-            nodes  = NodeArray from Abaqus
-            labels = list of node labels
-    """
-    if len(reference_point) != 3:
-        raise ValueError("reference_point must be a 3-element tuple or list")
-
-    # Create bounding box
-    lower = [reference_point[i] - capture_offset for i in range(3)]
-    upper = [reference_point[i] + capture_offset for i in range(3)]
-
-    lower = [float(coord) for coord in lower]
-    upper = [float(coord) for coord in upper]
-
-    # Expand the dof axis to max bounds
     idx = dof - 1
     lower[idx] = -max_bound
-    upper[idx] = max_bound
-
-    # Extract nodes
-    if hasattr(container, "instances") and instance_name is not None:
-        nodes = container.instances[instance_name].nodes.getByBoundingBox(
-            xMin=lower[0], xMax=upper[0],
-            yMin=lower[1], yMax=upper[1],
-            zMin=lower[2], zMax=upper[2]
-        )
-        if not nodes:
-            raise ValueError("[get_nodes_along_axis] No nodes found in bounds {} on instance '{}'.".format((lower, upper), instance_name))
-    elif hasattr(container, "nodes"):
-        nodes = container.nodes.getByBoundingBox(
-            xMin=lower[0], xMax=upper[0],
-            yMin=lower[1], yMax=upper[1],
-            zMin=lower[2], zMax=upper[2]
-        )
-        if not nodes:
-            raise ValueError("[get_nodes_along_axis] No nodes found in bounds {} in part.".format((lower, upper)))
-    else:
-        raise TypeError("[get_nodes_along_axis] container must be an Assembly or Part object")
-
-    labels = [node.label for node in nodes]
-    return nodes, labels
-
+    upper[idx] =  max_bound
+    
+    return nodes.getByBoundingBox(lower[0], lower[1], lower[2],
+                                  upper[0], upper[1], upper[2])
 
 def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
     """Move the closest nodes along the axis_dof direction to target_point along the free_dof direction"""
-    reference_point, _ = find_closest_node(part, target_point)
+    reference_point, _ = find_closest_node(part.nodes, target_point)
 
     # Capture all of the points on the part that lie along the line of action of the dof
     capture_offset = 0.001
     max_bound = 1e5 # A large number that will never be reached by the bounds of the part
 
     # Capture nodes along the neutral axis defined by the dof and the reference_point
-    nodes, _ = get_nodes_along_axis(part, reference_point.coordinates, axis_dof, max_bound, capture_offset)
+    nodes = get_nodes_along_axis(part.nodes, reference_point.coordinates, axis_dof, max_bound, capture_offset)
 
     for node in nodes:
         # Find the coordinates of the point and presribe the neutral axis location
@@ -509,64 +445,14 @@ def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
     labels = [node.label for node in nodes]
     return nodes, labels
 
-def move_closest_node_to_point(part, target_point, free_dof=[2], exclusion_label=-1, tol=1e-8):
-    """
-    Given a point in R3, move the closest node along all listed
-    degrees of freedom within free_dof to target_point.
-
-    Parameters
-    ----------
-    part : Abaqus Part
-    target_point : tuple containing location information (x, y, z)
-    free_dof : list of int
-        Axes along which the node point is to align itself with target_point (1=x, 2=y, 3=z).
-    exclusion_label : int
-        Node label to exclude from moving.
-    tol : float
-        Numerical tolerance for checking if already aligned.
-
-    Returns
-    -------
-    node : Abaqus Node object
-    label : int
-        Node label
-    """
-
-    # Find the closest node to the target_point
-    node, _ = find_closest_node(part, target_point)
-    label = node.label
-
-    if label == exclusion_label:
-        return node, label
-
-    temp_coords = list(node.coordinates)
-    coordinates = list(node.coordinates)
-
-    # Check if already aligned along the free DOFs
-    already_aligned = all(
-        abs(coordinates[dof - 1] - target_point[dof - 1]) < tol for dof in free_dof)
-    if already_aligned:
-        return node, label
-
-    # Otherwise, move node along free DOFs
-    for dof in free_dof:
-        coordinates[dof - 1] = target_point[dof - 1]
-
-    part.editNode(nodes=(node,), coordinates=(tuple(coordinates),))
-    print("[move_closest_node_to_point] Moved node '{}' from {} to {}.".format(
-        node.label, tuple(temp_coords), tuple(coordinates)
-    ))
-
-    return node, label
-
 def set_local_element_thickness(part, target_point, axis_dof, section_name='local-thickness', depth_of_search=1, set_name='temp'):
     """Assign a section to elements connected along an axis, expanding out by edge-sharing neighbours."""
-    reference_point, _ = find_closest_node(part, target_point)
+    reference_point, _ = find_closest_node(part.nodes, target_point)
 
     capture_offset = 0.001
     max_bound = 1e5
 
-    nodes, _ = get_nodes_along_axis(part, reference_point.coordinates, axis_dof, max_bound, capture_offset)
+    nodes = get_nodes_along_axis(part.nodes, reference_point.coordinates, axis_dof, max_bound, capture_offset)
 
     def edges_of_element(elem):
         node_labels = [node.label for node in elem.getNodes()]
@@ -614,113 +500,6 @@ def set_local_element_thickness(part, target_point, axis_dof, section_name='loca
     )
 
     print("Assigned section '{}' to {} elements.".format(section_name, len(selected_elements)))
-
-def homogenous_transform(transformation, point=None):
-    """
-    Given a point in R3 and a 4x4 homogeneous transformation matrix,
-    return the transformed point.
-
-    Parameters
-    ----------
-    transformation : (4,4) numpy.ndarray
-        Homogeneous transformation matrix.
-    point : point to be transformed
-        Point is length-3 or shape (3,1).
-
-    Returns
-    -------
-    transformed_point : tuple
-        Transformed (x, y, z) coordinates.
-    """
-    if point is None:
-        point = []
-
-    bottom_row = np.array([[1.0]])
-
-    homogenous_point = np.asarray(point).reshape(3, 1)
-    homogenous_point = np.vstack([homogenous_point, bottom_row])
-    transformed_point = tuple(np.dot(transformation, homogenous_point).flatten()[:3])
-
-    return transformed_point
-
-def get_nodes(container, instance_name=None, bounds=None):
-    """
-    Return a set of nodes and their labels using a bounding box.
-    
-    Works for:
-    - Assembly (requires instance_name)
-    - Part (instance_name is ignored)
-    
-    Parameters
-    ----------
-    container : Assembly or Part
-        The object on which to create the set.
-    instance_name : str, optional
-        Required if `container` is an Assembly.
-    bounds : tuple
-        (x_min, x_max, y_min, y_max, z_min, z_max)
-    
-    Returns
-    -------
-    tuple
-        (nodes, labels) where:
-            nodes  = NodeArray object from Abaqus
-            labels = list of node labels (ints)
-    """
-    if bounds is None:
-        raise ValueError("[create_node_set] Bounds must be specified.")
-
-    x_min, x_max, y_min, y_max, z_min, z_max = bounds
-
-    # Assembly case
-    if hasattr(container, "instances") and instance_name is not None:
-        target_nodes = container.instances[instance_name].nodes.getByBoundingBox(
-            xMin=x_min, xMax=x_max,
-            yMin=y_min, yMax=y_max,
-            zMin=z_min, zMax=z_max
-        )
-        if not target_nodes:
-            raise ValueError("[create_node_set] No nodes found in bounds {} on instance '{}'.".format(bounds, instance_name))
-
-    # Part case
-    elif hasattr(container, "nodes"):
-        target_nodes = container.nodes.getByBoundingBox(
-            xMin=x_min, xMax=x_max,
-            yMin=y_min, yMax=y_max,
-            zMin=z_min, zMax=z_max
-        )
-        if not target_nodes:
-            raise ValueError("[create_node_set] No nodes found in bounds {} in part.".format(bounds))
-
-    else:
-        raise TypeError("[create_node_set] 'container' must be an Assembly or Part object.")
-
-    # Extract labels from the nodes
-    labels = [node.label for node in target_nodes]
-    return target_nodes, labels
-
-def equation_constraint(model, assembly, parent_part_name, child_part_name, nodes_to_link, linked_dof=[1, 2, 3, 4, 5, 6]):
-    # nodes_to_link are sets of node labels that correspond to the parent_part_name and child_part_name parts
-    for pair in nodes_to_link:
-        label_one, label_two = pair[0], pair[1]
-        # Create a set for each of these nodes
-        assembly.Set(
-            name='equation-set-{}-{}-{}-{}-1'.format(parent_part_name, child_part_name, label_one, label_two),
-            nodes=assembly.instances[parent_part_name].nodes.sequenceFromLabels((label_one,))
-        )
-        assembly.Set(
-            name='equation-set-{}-{}-{}-{}-2'.format(parent_part_name, child_part_name, label_one, label_two),
-            nodes=assembly.instances[child_part_name].nodes.sequenceFromLabels((label_two,))
-        )
-
-        for dof in linked_dof:
-            model.Equation(
-                name='Equation-{}-{}-{}-{}-1'.format(parent_part_name, child_part_name, label_one, label_two),
-                terms=(
-                    (-1.0, 'equation-set-{}-{}-{}-{}-1'.format(parent_part_name, child_part_name, label_one, label_two), dof),
-                    ( 1.0, 'equation-set-{}-{}-{}-{}-2'.format(parent_part_name, child_part_name, label_one, label_two), dof),
-                ),
-            )
 
 def clean_json(obj):
     if isinstance(obj, dict):
@@ -901,6 +680,22 @@ model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
 
 # ----------------------------------------------------------------------------------------------------------------------------------
+# Define loading steps
+
+model.BuckleStep(
+    name='Buckle-Step',
+    previous='Initial',
+    numEigen=5,
+    maxIterations=500
+)
+
+#model.StaticStep(
+#    name='Buckle-Step',
+#    previous='Initial',
+#    nlgeom=OFF
+#)
+
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Meshing the Part
 mesh(model.parts['plate'], panel.mesh_plate)
 mesh(model.parts['web'], panel.mesh_longitudinal_web)
@@ -1002,108 +797,58 @@ y_flange = (panel.t_panel / 2) + panel.h_longitudinal_web + (panel.t_longitudina
 # If the TIE constraints defined between the edges and the surfaces are not set with thickness=ON, you need to consider the panels to each start at the half-thickness of the surface
 centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange)
 
-# Apply load to the left most edge of the panel
 web_step = panel.width / (panel.num_longitudinal + 1)
 current_step = web_step
 
+# Capture the nodal points of the part, not the assembly instance
+instance = model.parts['web-mesh']
+nodes = instance.nodes
+
 # Define left and right target points at web locations in the assembly reference frame
-centroid_free_end = np.array([
+target_point_left = np.array([
     [-float(panel.length / 2)],
     [-(float(panel.width) / 2) + web_step],
     [centroid]
 ])
-centroid_fixed_end = np.array([
+target_point_right = np.array([
     [float(panel.length / 2)],
     [-(float(panel.width) / 2) + web_step],
     [centroid]
 ])
 
-centroid_fixed_end = homogenous_transform(T_inv_web, centroid_fixed_end)
-centroid_free_end = homogenous_transform(T_inv_web, centroid_free_end)
+bottom_row = np.array([[1.0]])
+
+# Homogenous numpy arrays
+target_point_left = np.vstack([target_point_left, bottom_row])
+target_point_right = np.vstack([target_point_right, bottom_row])
+
+# Transform the points into the web reference frame
+target_point_left = np.dot(T_inv_web, target_point_left)
+target_point_right = np.dot(T_inv_web, target_point_right)
+
+target_point_left = tuple(target_point_left.flatten()[:3])
+target_point_right = tuple(target_point_right.flatten()[:3])
 
 # Modify the nodes along the neutral axis of the panel to line up properly
 # Must reference the points in the part reference frame, not the assembly
-_, _ = move_closest_nodes_to_axis(part=web, target_point=centroid_free_end, axis_dof = 1, free_dof = 2)
-_, _ = move_closest_nodes_to_axis(part=web, target_point=centroid_fixed_end, axis_dof = 1, free_dof = 2)
-
-# ----------------------------------------------------------------------------------------------------------------------------------
+_, centroid_node_labels_left = move_closest_nodes_to_axis(part=web, target_point=target_point_left, axis_dof = 1, free_dof = 2)
+_, centroid_node_labels_right = move_closest_nodes_to_axis(part=web, target_point=target_point_right, axis_dof = 1, free_dof = 2)
 
 # Change the local thickness of the elements to prevent local failure due to large input forces
-set_local_element_thickness(part=web, target_point=centroid_free_end, axis_dof = 1, depth_of_search = 2, set_name='left-thickness-region')
-set_local_element_thickness(part=web, target_point=centroid_fixed_end, axis_dof = 1, depth_of_search = 2, set_name='right_thickness_region')
-
-# ----------------------------------------------------------------------------------------------------------------------------------
+set_local_element_thickness(part=web, target_point=target_point_left, axis_dof = 1, depth_of_search = 2, set_name='left-thickness-region')
+set_local_element_thickness(part=web, target_point=target_point_right, axis_dof = 1, depth_of_search = 2, set_name='right_thickness_region')
 
 # Reference the coordinates in the global geometry and use the inverse matrix to map them into the plate geometry
+model.ConstrainedSketch(name='plate-mesh-edit', sheetSize=200.0)
 for index, web_location in enumerate(web_locations):
-    # Location of each of the webs that intersect the plate
-    web_point = np.array([[0.0], [float(web_location)], [0.0]])
-
+    web_point = np.array([[0.0], [float(web_location)], [0.0]]) # Location of each of the webs that intersect the plate
     # Transform back into the plate reference frame
-    web_point = homogenous_transform(T_inv_plate, web_point)
+    web_point = np.vstack([web_point, bottom_row])
+    web_point = np.dot(T_inv_plate, web_point)
+    web_point = tuple(web_point.flatten()[:3])
 
     # Align the plate mesh to the axis along the x-axis to this location
-    _, _ = move_closest_nodes_to_axis(model.parts['plate-mesh'], web_point, axis_dof = 2, free_dof = 1)
-
-# Linking flange, web, and plate together
-
-# Parent, Child node labels
-web_plate_set = set()
-web_flange_set = set()
-
-for index, web_location in enumerate(web_locations):
-    # Upper and lower point in the assembly reference frame that we want to capture information along. We look at the centre of the panel as we are interested for nodes along the x-axis
-    lower_point = np.array([[0.0],[web_location],[0.0]])
-    upper_point = np.array([[0.0],[web_location],[panel.h_longitudinal_web]])
-
-    # plate nodes. Reference the dof within the part, ie. 2
-    _, plate_nodes = get_nodes_along_axis(plate, reference_point = homogenous_transform(T_inv_plate, lower_point), dof = 2)
-
-    # web nodes. Reference the dof within the part, ie. 1
-    _, web_nodes_lower = get_nodes_along_axis(web, reference_point = homogenous_transform(T_inv_web, lower_point), dof = 3)
-    _, web_nodes_upper = get_nodes_along_axis(web, reference_point = homogenous_transform(T_inv_web, upper_point), dof = 3)
-
-    # flange nodes. Reference the dof within the part, ie. 1
-    _, flange_nodes = get_nodes_along_axis(flange, reference_point = homogenous_transform(T_inv_web, upper_point), dof = 3)
-
-    # Determine parent and child sets/parts based on node count.
-    # The parent is the smaller set (fewer nodes = higher DOF along edge).
-    if len(web_nodes_lower) <= len(plate_nodes):
-        parent_set, child_set = web_nodes_lower, plate_nodes
-        parent_part_one = web
-        child_part_one = plate
-        transformation_one, transformation_two = T_web, T_inv_plate
-    else:
-        parent_set, child_set = plate_nodes, web_nodes_lower
-        parent_part_one = plate
-        child_part_one = web
-        transformation_one, transformation_two = T_plate, T_inv_web
-
-    # For each nodes within the parent set, we need to move the corresponding closest node in the child set to match it
-    for node_label in parent_set:
-        node = parent_part_one.nodes.sequenceFromLabels((node_label,))[0]
-        driving_point = homogenous_transform(transformation_two, homogenous_transform(transformation_one, node.coordinates))
-        _, label = move_closest_node_to_point(part = child_part_one, target_point = driving_point , free_dof = [3])
-        web_plate_set.add((node.label, label))
-
-    # web-flange intersection
-    # No transformations are required as they are built in the same reference frame
-    if len(web_nodes_lower) <= len(flange_nodes):
-        parent_set, child_set = web_nodes_upper, flange_nodes
-        parent_part_two = web
-        child_part_two = flange
-    else:
-        parent_set, child_set = flange_nodes, web_nodes_upper
-        parent_part_two = flange
-        child_part_two = web
-
-    # For each nodes within the parent set, we need to move the corresponding closest node in the child set to match it
-    moved_labels = set()
-    for node_label in parent_set:
-        node = parent_part_two.nodes.sequenceFromLabels((node_label,))[0]
-        driving_point = node.coordinates
-        _, label = move_closest_node_to_point(part = child_part_two, target_point = driving_point , free_dof = [3])
-        web_flange_set.add((node.label, label))
+    _, _ = move_closest_nodes_to_axis(model.parts['plate-mesh'], target_point = web_point, axis_dof = 2, free_dof = 1)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Instance Creation
@@ -1120,59 +865,69 @@ assembly.rotate(instanceList=['web','flange'], axisPoint= (0,0,0), axisDirection
 assembly.translate(instanceList=['web','flange'], vector=(web_displacement, 0.0, 0.0))
 
 # ----------------------------------------------------------------------------------------------------------------------------------
+# Collect the sets of nodes that fall along each point within web_locations and 
 
-# Link the plate, web, and flange via Equations
-equation_constraint(model, assembly, parent_part_name=parent_part_one.name.replace('-mesh', ''), child_part_name=child_part_one.name.replace('-mesh', ''), nodes_to_link=web_plate_set)
-equation_constraint(model, assembly, parent_part_name=parent_part_two.name.replace('-mesh', ''), child_part_name=child_part_two.name.replace('-mesh', ''), nodes_to_link=web_flange_set)
-
-# Link the y-axis displacement of the free-ends of the panel via Equations
+plate_labels = []
+web_labels = []
 for index, web_location in enumerate(web_locations):
-    # Points along the axis we want to capture the points
-    point_one = np.array([[panel.length / 2], [web_location], [0.0]])
-    point_two = np.array([[-panel.length / 2], [web_location], [0.0]])
+    bounds = [-max_domain, max_domain, web_location - capture_offset, web_location + capture_offset, -capture_offset, capture_offset]
 
-    # Labels of the nodes we have captured along the z-axis of the free ends of the panel
-    _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=3, instance_name='web')
-    _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=3, instance_name='web')
+    # Find the plate nodes that lie under the contact area of the web
+    _, new_labels = create_node_set(assembly, 'temp-plate-node-set-{}'.format(index), instance_name = 'plate', bounds = bounds)
+    plate_labels.extend(new_labels)
 
-    # We now have two sets of labels and I want to match them one for one down the panel
-    # These two sets are going to be the same size, so we can map with a 1-1 correspondance
-    end_pairs = set((labels_one[i], labels_two[i]) for i in range(len(labels_one)))
-    equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=end_pairs, linked_dof=[2])
+    # Find the web nodes that lie above the contact area on the plate
+    _, new_labels = create_node_set(assembly, 'temp-web-node-set-{}'.format(index), instance_name = 'web', bounds = bounds)
+    web_labels.extend(new_labels)
+
+    model.Tie(
+        name="Constraint{}".format(index),
+        main=assembly.sets['temp-plate-node-set-{}'.format(index)],
+        secondary=assembly.sets['temp-web-node-set-{}'.format(index)],
+        adjust=ON,
+        positionToleranceMethod=COMPUTED,
+        tieRotations=ON,
+        thickness=ON
+    )
+
+web_labels = []
+flange_labels = []
+for index, web_location in enumerate(web_locations):
+    bounds = [-max_domain, max_domain, web_location - capture_offset, web_location + capture_offset, panel.h_longitudinal_web - capture_offset, panel.h_longitudinal_web + capture_offset]
+
+    # Find the plate nodes that lie under the contact area of the web
+    _, new_labels = create_node_set(assembly, 'temp-web-upper-node-set-{}'.format(index), instance_name = 'web', bounds = bounds)
+    web_labels.extend(new_labels)
+
+    # Find the web nodes that lie above the contact area on the plate
+    _, new_labels = create_node_set(assembly, 'temp-flange-node-set-{}'.format(index), instance_name = 'flange', bounds = bounds)
+    flange_labels.extend(new_labels)
+
+    model.Tie(
+        name="Constraint{}".format(index + len(web_locations)),
+        main=assembly.sets['temp-web-upper-node-set-{}'.format(index)],
+        secondary=assembly.sets['temp-flange-node-set-{}'.format(index)],
+        adjust=ON,
+        positionToleranceMethod=COMPUTED,
+        tieRotations=ON,
+        thickness=ON
+    )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-
-# Link the end of the panels together via Equations
-
-fixed_point = np.array([[panel.length / 2], [0.0], [centroid]])
-free_point = np.array([[-panel.length / 2], [0.0], [centroid]])
-
-_, centroid_labels_fixed = get_nodes_along_axis(assembly, reference_point=fixed_point, dof=2, instance_name='web')
-_, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='web')
-
-# centroid_pairs_fixed = set((centroid_labels_fixed[i], centroid_labels_fixed[i+1]) for i in range(len(centroid_labels_fixed) - 1))
-centroid_pairs_free = set((centroid_labels_free[i], centroid_labels_free[i+1]) for i in range(len(centroid_labels_free) - 1))
-
-# equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=centroid_pairs_fixed, linked_dof=[1])
-equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=centroid_pairs_free, linked_dof=[1])
-
-# ----------------------------------------------------------------------------------------------------------------------------------
-
-# Boundary conditions
-
-# ----------------------------------------------------------------------------------------------------------------------------------
-
 # Rigid Body Motion Constraint
 # Define a constraint point to limit the x-2 displacement of the panel to prevent RBM
 constraint_point = np.array([[0.0], [0.0], [0.0]])
-_, label = find_closest_node(assembly, reference_point=constraint_point, instance_name='plate')
+# Transform into the plate reference frame
+constraint_point = np.vstack([constraint_point, bottom_row])
+constraint_point = np.dot(T_inv_plate, constraint_point)
+constraint_point = tuple(constraint_point.flatten()[:3])
+
+_, label = find_closest_node(plate.nodes, constraint_point)
 middle_node = assembly.instances['plate'].nodes.sequenceFromLabels((label,))
 constraint_set = assembly.Set(name='middle-bc', nodes=(middle_node,))
 
 # Constrain in the x-2 direction, and allow all other motion
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Middle-BC', region=assembly.sets['middle-bc'], u2=0.0)
-
-# Edge Constraint
 
 # Plate-edge BC (zero motion in x3 direction)
 boundary_regions = [
@@ -1188,42 +943,124 @@ boundary_regions = [
 # Capture all of the edges of the plate
 labels = []
 for index, region in enumerate(boundary_regions):
-    _, new_labels = get_nodes(assembly, instance_name='plate', bounds=region)
-    # _, new_labels = create_node_set(assembly, 'simply-supported-edge-{}'.format(index), 'plate', region)
+    _, new_labels = create_node_set(assembly, 'simply-supported-edge-{}'.format(index), 'plate', region)
     labels.extend(new_labels)
 
 plate_edge_BC_nodes = assembly.instances['plate'].nodes.sequenceFromLabels(labels)
 plate_edge_set = assembly.Set(name='plate-edge', nodes=plate_edge_BC_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Edge-BC', region=plate_edge_set, u3=0.0)
 
-# Fix the centroid on one side of the panel
-fixed_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_labels_fixed)
-fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_nodes)
+# Link together all of the rings of nodes for a given stiffener
+created_sets = set()
+dof = 2
+
+for index, web_location in enumerate(web_locations):
+    labels = []  # Reset labels for each ring
+
+    bounds_1 = [
+        -(panel.length / 2) - capture_offset,
+        -(panel.length / 2) + capture_offset,
+        web_location - capture_offset,
+        web_location + capture_offset,
+        capture_offset,
+        panel.h_longitudinal_web - capture_offset,
+    ]
+    bounds_2 = [
+        (panel.length / 2) - capture_offset,
+        (panel.length / 2) + capture_offset,
+        web_location - capture_offset,
+        web_location + capture_offset,
+        capture_offset,
+        panel.h_longitudinal_web - capture_offset,
+    ]
+
+    # Create node sets & get labels for each side of the ring
+    _, new_label_1 = create_node_set(assembly, 'periodic-{}-1'.format(index), 'web', bounds=bounds_1)
+    labels.extend(new_label_1)
+    _, new_label_2 = create_node_set(assembly, 'periodic-{}-2'.format(index), 'web', bounds=bounds_2)
+    labels.extend(new_label_2)
+
+    labels.sort()
+
+    # Sliding window of size 2 over labels
+    window_size = 2
+    for j in range(len(labels) - window_size + 1):
+        lbl_1, lbl_2 = labels[j : j + window_size]
+
+        # Create node sets if not already created
+        if lbl_1 not in created_sets:
+            created_sets.add(lbl_1)
+            assembly.Set(
+                name='periodic-node-{}-{}'.format(index, lbl_1),
+                nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_1,)),
+            )
+        if lbl_2 not in created_sets:
+            created_sets.add(lbl_2)
+            assembly.Set(
+                name='periodic-node-{}-{}'.format(index, lbl_2),
+                nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_2,)),
+            )
+
+        # Create the equation linking dof=2 of both nodes
+        model.Equation(
+            name='Periodic-Equation-{}-{}'.format(index, j),
+            terms=(
+                (-1.0, 'periodic-node-{}-{}'.format(index, lbl_1), dof),
+                (1.0, 'periodic-node-{}-{}'.format(index, lbl_2), dof),
+            ),
+        )
+
+# Define the boundary conditions on the neutral axis of the fixed end of the panel
+# We have, from before: centroid_node_labels_left, centroid_node_labels_right (fixed)
+# Create boundary set for fixed side:
+
+fixed_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_right)
+fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_centroid_BC_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0)
 
+# Tie the end of the panel together as well
+# free_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_left)
+# free_centroid_BC = assembly.Set(name='Fixed-BC', nodes=free_centroid_BC_nodes)
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=free_centroid_BC, u3=0.0)
+
+created_sets = set()
+window_size = 2
+# Constrain the x-displacement of the free end of the panel via Equations
+dof = 1
+
+for index in range(len(centroid_node_labels_left) - window_size + 1):
+    lbl_1, lbl_2 = centroid_node_labels_left[index : index + window_size]
+    # Create node sets if not already created
+    if lbl_1 not in created_sets:
+        created_sets.add(lbl_1)
+        assembly.Set(
+            name='free-node-{}'.format(lbl_1),
+            nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_1,)),
+        )
+    if lbl_2 not in created_sets:
+        created_sets.add(lbl_2)
+        assembly.Set(
+            name='free-node-{}'.format(lbl_2),
+            nodes=assembly.instances['web'].nodes.sequenceFromLabels((lbl_2,)),
+        )
+    # Create the equation linking dof=2 of both nodes
+    model.Equation(
+        name='Free-End-Equation-{}'.format(index),
+        terms=(
+            (-1.0, 'free-node-{}'.format(lbl_1), dof),
+            (1.0, 'free-node-{}'.format(lbl_2), dof),
+        ),
+    )
+
 # --------------------------------------------------------------------------------------------------------------------------------------------
+# Load conditions!
 # Load application
 
-load_nodes = assembly.instances['web'].nodes.sequenceFromLabels((centroid_labels_free[0],))
+load_nodes = assembly.instances['web'].nodes.sequenceFromLabels((centroid_node_labels_left[0],))
 load_set = assembly.Set(name='load_set', nodes=load_nodes)
-load_region = regionToolset.Region(nodes=load_nodes)
-# Create Step Object
-model.StaticRiksStep(
-    name='Riks-Step',
-    previous='Initial',
-    nlgeom=ON,
-    initialArcInc=0.001,
-    maxArcInc=0.5,
-    maxNumInc=500,
-    nodeOn=ON,
-    region=load_region,
-    dof=1,
-    maximumDisplacement=0.5
-)
-
 model.ConcentratedForce(
     name="Load",
-    createStepName="Riks-Step",
+    createStepName="Buckle-Step",
     region=load_set,
     distributionType=UNIFORM,
     cf1=float(panel.axial_force),
@@ -1262,3 +1099,6 @@ job = mdb.Job(
 )
 
 job.writeInput()
+
+job.submit(consistencyChecking=OFF)
+job.waitForCompletion()
