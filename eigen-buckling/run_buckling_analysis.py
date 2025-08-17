@@ -1,12 +1,12 @@
+# Python Includes
 import subprocess
-import os
+from datetime import datetime
 
 from utils.FiniteElementModel import FiniteElementModel
 from models.IO_buckling import PanelInput, PanelOutput
 
-from datetime import datetime
 now = datetime.now()
-print(f"Start Time: {now}")
+print(f"Buckling Analysis Start Time: {now}")
 
 panel = PanelInput(
     id = "",
@@ -52,6 +52,15 @@ field_output_block = [
 ]
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Static Method
+fem = FiniteElementModel("models\\buckling_eigen_panel.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
+fem.write(panel)
+fem.run()
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Riks Method
+now = datetime.now()
+print(f"Start Time: {now}")
 
 # Write the initial input file
 fem = FiniteElementModel(f"models\\{trial}.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
