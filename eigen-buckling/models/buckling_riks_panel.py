@@ -34,10 +34,10 @@ import odbAccess
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # !!! Set correct working directory !!!
-setPath = r'Z:\\lase\\yuecheng'
+working_directory = r'Z:\\lase\\ultimate_strength'
 input_directory = r'data\\input.jsonl'
 output_directory = r'data\\output.jsonl'
-os.chdir(setPath)
+os.chdir(working_directory)
 
 # !!! Set correct job name
 job_name = 'buckling_riks_panel'
@@ -1003,7 +1003,7 @@ for index, web_location in enumerate(web_locations):
 
 fixed_centroid_BC_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_node_labels_right)
 fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_centroid_BC_nodes)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0, u2=0.0, u3=0.0)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0)
 
 # Tie the end of the panel together as well
 created_sets = set()

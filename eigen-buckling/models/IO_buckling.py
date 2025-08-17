@@ -29,6 +29,8 @@ class PanelInput:
     mesh_longitudinal_web: float
     mesh_longitudinal_flange: float
 
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Output system
 @dataclass
 class ElementStress:
     element_id: int

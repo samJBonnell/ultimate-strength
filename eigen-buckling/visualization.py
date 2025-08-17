@@ -15,7 +15,6 @@ class ForceDisplacementData:
         with open(self.filename, 'r') as f:
             for line in f:
                 data = json.loads(line)
-                # trial_label can be numeric or string; convert to float if numeric
                 try:
                     trial_label = float(data.get('trial_label', 0.0))
                 except ValueError:
@@ -59,7 +58,8 @@ lin_esl_x, lin_esl_y = data[:, 2], data[:, 3]
 fem_x, fem_y       = data[:, 4], data[:, 5]
 
 # Load data
-simply_supported = ForceDisplacementData("exported_data/force_displacement.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+simply_supported = ForceDisplacementData("exported_data/test.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+simply_supported = ForceDisplacementData("exported_data/new.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
 
 fig, ax = plt.subplots()
 
