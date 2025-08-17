@@ -715,7 +715,7 @@ def equation_constraint(model, assembly, parent_part_name, child_part_name, node
 
         for dof in linked_dof:
             model.Equation(
-                name='Equation-{}-{}-{}-{}-1'.format(parent_part_name, child_part_name, label_one, label_two),
+                name='Equation-{}-{}-{}-{}-{}'.format(parent_part_name, child_part_name, label_one, label_two, dof),
                 terms=(
                     (-1.0, 'equation-set-{}-{}-{}-{}-1'.format(parent_part_name, child_part_name, label_one, label_two), dof),
                     ( 1.0, 'equation-set-{}-{}-{}-{}-2'.format(parent_part_name, child_part_name, label_one, label_two), dof),
@@ -910,11 +910,11 @@ model.BuckleStep(
     maxIterations=500
 )
 
-#model.StaticStep(
+# model.StaticStep(
 #    name='Buckle-Step',
 #    previous='Initial',
 #    nlgeom=OFF
-#)
+# )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Meshing the Part
@@ -1067,6 +1067,8 @@ for index, web_location in enumerate(web_locations):
 web_plate_set = set()
 web_flange_set = set()
 
+web_node_set = set()
+
 for index, web_location in enumerate(web_locations):
     # Upper and lower point in the assembly reference frame that we want to capture information along. We look at the centre of the panel as we are interested for nodes along the x-axis
     lower_point = np.array([[0.0],[web_location],[0.0]])
@@ -1078,6 +1080,7 @@ for index, web_location in enumerate(web_locations):
     # web nodes. Reference the dof within the part, ie. 1
     _, web_nodes_lower = get_nodes_along_axis(web, reference_point = homogenous_transform(T_inv_web, lower_point), dof = 3)
     _, web_nodes_upper = get_nodes_along_axis(web, reference_point = homogenous_transform(T_inv_web, upper_point), dof = 3)
+    web_node_set.update(web_nodes_lower + web_nodes_upper)
 
     # flange nodes. Reference the dof within the part, ie. 1
     _, flange_nodes = get_nodes_along_axis(flange, reference_point = homogenous_transform(T_inv_web, upper_point), dof = 3)
@@ -1151,9 +1154,11 @@ for index, web_location in enumerate(web_locations):
     _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=3, instance_name='web')
     _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=3, instance_name='web')
 
-    # We now have two sets of labels and I want to match them one for one down the panel
-    # These two sets are going to be the same size, so we can map with a 1-1 correspondance
-    end_pairs = set((labels_one[i], labels_two[i]) for i in range(len(labels_one)))
+    # We need to link these as a "ring", so that the displacement is consistent around the entire set of free-ends
+    # Remove the nodes that occur in the upper and lower sets from the flange-web and plate-web linking
+    labels = sorted([lab for lab in (labels_one + labels_two) if lab not in web_node_set])
+    end_pairs = set((labels[i], labels[i + 1]) for i in range(len(labels) - 1))
+
     equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=end_pairs, linked_dof=[2])
 
 # ----------------------------------------------------------------------------------------------------------------------------------
