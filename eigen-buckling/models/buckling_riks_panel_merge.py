@@ -40,7 +40,7 @@ output_directory = r'data\\output.jsonl'
 os.chdir(working_directory)
 
 # !!! Set correct job name
-job_name = 'buckling_eigen_panel'
+job_name = 'buckling_riks_panel'
 
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
@@ -901,22 +901,6 @@ model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Define loading steps
-
-model.BuckleStep(
-    name='Buckle-Step',
-    previous='Initial',
-    numEigen=5,
-    maxIterations=500
-)
-
-# model.StaticStep(
-#    name='Buckle-Step',
-#    previous='Initial',
-#    nlgeom=OFF
-# )
-
-# ----------------------------------------------------------------------------------------------------------------------------------
 # Meshing the Part
 mesh(model.parts['plate'], panel.mesh_plate)
 mesh(model.parts['web'], panel.mesh_longitudinal_web)
@@ -1006,6 +990,8 @@ assign_section_bounds(part = flange, section_name = "t-{}".format(panel.t_longit
 # Find the node closest to the centroid of the face
 assembly.regenerate()
 capture_offset = 0.001
+centroid_offset = -0.002
+
 
 A_panel = panel.width * panel.t_panel
 A_web = panel.h_longitudinal_web * panel.t_longitudinal_web * panel.num_longitudinal
@@ -1016,7 +1002,7 @@ y_web = panel.t_panel + (panel.h_longitudinal_web) / 2
 y_flange = (panel.t_panel / 2) + panel.h_longitudinal_web + (panel.t_longitudinal_flange / 2)
 
 # If the TIE constraints defined between the edges and the surfaces are not set with thickness=ON, you need to consider the panels to each start at the half-thickness of the surface
-centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange)
+centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange) + centroid_offset
 
 # Apply load to the left most edge of the panel
 web_step = panel.width / (panel.num_longitudinal + 1)
@@ -1138,11 +1124,34 @@ assembly.rotate(instanceList=['web','flange'], axisPoint= (0,0,0), axisDirection
 assembly.rotate(instanceList=['web','flange'], axisPoint= (0,0,0), axisDirection=(0,1,0), angle=math.degrees(rot_2))
 assembly.translate(instanceList=['web','flange'], vector=(web_displacement, 0.0, 0.0))
 
+assembly.InstanceFromBooleanMerge(
+    name='panel',
+    instances=(
+        assembly.instances['plate'], 
+        assembly.instances['web'], 
+        assembly.instances['flange']
+    ),
+    keepIntersections=ON,
+    originalInstances=DELETE,
+    domain=MESH
+)
+del assembly.instances['panel-1']
+
+merged_part = model.parts['panel']
+merged_part.mergeNodes(
+    nodes=merged_part.nodes,
+    tolerance=1e-4
+)
+
+assembly.Instance(dependent=ON, name='panel', part=model.parts['panel'])
+
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 # Link the plate, web, and flange via Equations
-equation_constraint(model, assembly, parent_part_name=parent_part_one.name.replace('-mesh', ''), child_part_name=child_part_one.name.replace('-mesh', ''), nodes_to_link=web_plate_set, linked_dof=[1, 2, 3])
-equation_constraint(model, assembly, parent_part_name=parent_part_two.name.replace('-mesh', ''), child_part_name=child_part_two.name.replace('-mesh', ''), nodes_to_link=web_flange_set, linked_dof=[1, 2, 3])
+# equation_constraint(model, assembly, parent_part_name=parent_part_one.name.replace('-mesh', ''), child_part_name=child_part_one.name.replace('-mesh', ''), nodes_to_link=web_plate_set, linked_dof=[1, 2, 3])
+# equation_constraint(model, assembly, parent_part_name=parent_part_two.name.replace('-mesh', ''), child_part_name=child_part_two.name.replace('-mesh', ''), nodes_to_link=web_flange_set, linked_dof=[1, 2, 3])
+
+# I have the nodes sets already, so I simply need to merge them
 
 # Link the y-axis displacement of the free-ends of the panel via Equations
 for index, web_location in enumerate(web_locations):
@@ -1151,15 +1160,17 @@ for index, web_location in enumerate(web_locations):
     point_two = np.array([[-panel.length / 2], [web_location], [0.0]])
 
     # Labels of the nodes we have captured along the z-axis of the free ends of the panel
-    _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=3, instance_name='web')
-    _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=3, instance_name='web')
+    _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=3, instance_name='panel')
+    _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=3, instance_name='panel')
 
     # We need to link these as a "ring", so that the displacement is consistent around the entire set of free-ends
     # Remove the nodes that occur in the upper and lower sets from the flange-web and plate-web linking
     labels = sorted([lab for lab in (labels_one + labels_two) if lab not in web_node_set])
+    labels = sorted([lab for lab in (labels_one + labels_two)])
+
     end_pairs = set((labels[i], labels[i + 1]) for i in range(len(labels) - 1))
 
-    equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=end_pairs, linked_dof=[2])
+    equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=end_pairs, linked_dof=[2])
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -1168,14 +1179,14 @@ for index, web_location in enumerate(web_locations):
 fixed_point = np.array([[panel.length / 2], [0.0], [centroid]])
 free_point = np.array([[-panel.length / 2], [0.0], [centroid]])
 
-_, centroid_labels_fixed = get_nodes_along_axis(assembly, reference_point=fixed_point, dof=2, instance_name='web')
-_, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='web')
+_, centroid_labels_fixed = get_nodes_along_axis(assembly, reference_point=fixed_point, dof=2, instance_name='panel')
+_, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='panel')
 
-# centroid_pairs_fixed = set((centroid_labels_fixed[i], centroid_labels_fixed[i+1]) for i in range(len(centroid_labels_fixed) - 1))
+#centroid_pairs_fixed = set((centroid_labels_fixed[i], centroid_labels_fixed[i+1]) for i in range(len(centroid_labels_fixed) - 1))
 centroid_pairs_free = set((centroid_labels_free[i], centroid_labels_free[i+1]) for i in range(len(centroid_labels_free) - 1))
 
-# equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=centroid_pairs_fixed, linked_dof=[1])
-equation_constraint(model, assembly, parent_part_name='web', child_part_name='web', nodes_to_link=centroid_pairs_free, linked_dof=[1])
+#equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_fixed, linked_dof=[1])
+equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_free, linked_dof=[1])
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -1186,8 +1197,8 @@ equation_constraint(model, assembly, parent_part_name='web', child_part_name='we
 # Rigid Body Motion Constraint
 # Define a constraint point to limit the x-2 displacement of the panel to prevent RBM
 constraint_point = np.array([[0.0], [0.0], [0.0]])
-_, label = find_closest_node(assembly, reference_point=constraint_point, instance_name='plate')
-middle_node = assembly.instances['plate'].nodes.sequenceFromLabels((label,))
+_, label = find_closest_node(assembly, reference_point=constraint_point, instance_name='panel')
+middle_node = assembly.instances['panel'].nodes.sequenceFromLabels((label,))
 constraint_set = assembly.Set(name='middle-bc', nodes=(middle_node,))
 
 # Constrain in the x-2 direction, and allow all other motion
@@ -1198,41 +1209,53 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 # Plate-edge BC (zero motion in x3 direction)
 boundary_regions = [
     # X-Aligned BCs
-    [float(panel.length)/2 - capture_offset, float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, panel.h_longitudinal_web + capture_offset],
-    [-float(panel.length)/2 - capture_offset, -float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, panel.h_longitudinal_web + capture_offset],
+    [float(panel.length)/2 - capture_offset, float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, capture_offset],
+    [-float(panel.length)/2 - capture_offset, -float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, capture_offset],
         
     # Y-Aligned BCs
-    [-float(panel.length)/2, float(panel.length)/2, float(panel.width)/2 - capture_offset, float(panel.width)/2 + capture_offset, -capture_offset, panel.h_longitudinal_web + capture_offset],
-    [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - capture_offset, -float(panel.width)/2 + capture_offset, -capture_offset, panel.h_longitudinal_web + capture_offset]
+    [-float(panel.length)/2, float(panel.length)/2, float(panel.width)/2 - capture_offset, float(panel.width)/2 + capture_offset, -capture_offset, capture_offset],
+    [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - capture_offset, -float(panel.width)/2 + capture_offset, -capture_offset, capture_offset]
     ]
 
 # Capture all of the edges of the plate
 labels = []
 for index, region in enumerate(boundary_regions):
-    _, new_labels = get_nodes(assembly, instance_name='plate', bounds=region)
+    _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
     # _, new_labels = create_node_set(assembly, 'simply-supported-edge-{}'.format(index), 'plate', region)
     labels.extend(new_labels)
 
-plate_edge_BC_nodes = assembly.instances['plate'].nodes.sequenceFromLabels(labels)
+plate_edge_BC_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
 plate_edge_set = assembly.Set(name='plate-edge', nodes=plate_edge_BC_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Edge-BC', region=plate_edge_set, u3=0.0)
 
 # Fix the centroid on one side of the panel
-fixed_nodes = assembly.instances['web'].nodes.sequenceFromLabels(centroid_labels_fixed)
+fixed_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(centroid_labels_fixed)
 fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0)
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Load application
 
-load_nodes = assembly.instances['web'].nodes.sequenceFromLabels((centroid_labels_free[0],))
+load_nodes = assembly.instances['panel'].nodes.sequenceFromLabels((centroid_labels_free[0],))
 load_set = assembly.Set(name='load_set', nodes=load_nodes)
 load_region = regionToolset.Region(nodes=load_nodes)
 # Create Step Object
+model.StaticRiksStep(
+    name='Riks-Step',
+    previous='Initial',
+    nlgeom=ON,
+    initialArcInc=0.001,
+    maxArcInc=0.5,
+    maxNumInc=500,
+    nodeOn=ON,
+    region=load_region,
+    dof=1,
+    maximumDisplacement=0.5
+)
 
 model.ConcentratedForce(
     name="Load",
-    createStepName="Buckle-Step",
+    createStepName="Riks-Step",
     region=load_set,
     distributionType=UNIFORM,
     cf1=float(panel.axial_force),
@@ -1271,6 +1294,3 @@ job = mdb.Job(
 )
 
 job.writeInput()
-
-job.submit(consistencyChecking=OFF)
-job.waitForCompletion()
