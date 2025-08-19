@@ -1125,8 +1125,8 @@ assembly.translate(instanceList=['web','flange'], vector=(web_displacement, 0.0,
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 # Link the plate, web, and flange via Equations
-equation_constraint(model, assembly, parent_part_name=parent_part_one.name.replace('-mesh', ''), child_part_name=child_part_one.name.replace('-mesh', ''), nodes_to_link=web_plate_set)
-equation_constraint(model, assembly, parent_part_name=parent_part_two.name.replace('-mesh', ''), child_part_name=child_part_two.name.replace('-mesh', ''), nodes_to_link=web_flange_set)
+equation_constraint(model, assembly, parent_part_name=parent_part_one.name.replace('-mesh', ''), child_part_name=child_part_one.name.replace('-mesh', ''), nodes_to_link=web_plate_set, linked_dof=[1, 2, 3])
+equation_constraint(model, assembly, parent_part_name=parent_part_two.name.replace('-mesh', ''), child_part_name=child_part_two.name.replace('-mesh', ''), nodes_to_link=web_flange_set, linked_dof=[1, 2, 3])
 
 # Link the y-axis displacement of the free-ends of the panel via Equations
 for index, web_location in enumerate(web_locations):

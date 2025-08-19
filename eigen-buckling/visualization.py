@@ -59,11 +59,16 @@ fem_x, fem_y       = data[:, 4], data[:, 5]
 
 # Load data
 simply_supported = ForceDisplacementData("exported_data/test.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
-simply_supported = ForceDisplacementData("exported_data/new.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+# tie = ForceDisplacementData("exported_data/new.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+equation = ForceDisplacementData("exported_data/equation.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+
 
 fig, ax = plt.subplots()
 
-simply_supported.plot_curve(ax, lw=1.0, base_label='Centroid Offset: ')
+simply_supported.plot_curve(ax, lw=1.0, base_label='Tie: ')
+equation.plot_curve(ax, lw=1.0, base_label='Equation: ')
+
+
 ax.plot(fem_x, fem_y, marker='x', color='black', label="3D FEM", lw=0.7)
 
 ax.set_title("Axial Force vs. End Shortening Curve - UC1", fontsize = 10)
