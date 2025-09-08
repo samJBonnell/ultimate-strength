@@ -61,15 +61,18 @@ fem_x, fem_y       = data[:, 4], data[:, 5]
 simply_supported = ForceDisplacementData("exported_data/test.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
 # tie = ForceDisplacementData("exported_data/new.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
 equation = ForceDisplacementData("exported_data/equation.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+jasmin = ForceDisplacementData("exported_data/elastic_for_jasmin.jsonl", normalize_disp = 1e-3, normalize_force = 1e6)
+
 
 
 fig, ax = plt.subplots()
 
+jasmin.plot_curve(ax, lw=1.0, base_label='Elastic: ')
 simply_supported.plot_curve(ax, lw=1.0, base_label='Tie: ')
 equation.plot_curve(ax, lw=1.0, base_label='Equation: ')
 
-
-ax.plot(fem_x, fem_y, marker='x', color='black', label="3D FEM", lw=0.7)
+# ax.plot(fem_x, fem_y, marker='x', color='black', label="3D FEM", lw=0.7)
+ax.plot(lin_esl_x, lin_esl_y, marker='x', color='black', label="3D FEM", lw=0.7)
 
 ax.set_title("Axial Force vs. End Shortening Curve - UC1", fontsize = 10)
 fig.suptitle("Buckling Prediction of Stiffened Panel", fontsize = 12)

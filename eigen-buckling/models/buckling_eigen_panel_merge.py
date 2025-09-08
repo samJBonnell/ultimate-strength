@@ -1019,6 +1019,18 @@ y_flange = (panel.t_panel / 2) + panel.h_longitudinal_web + (panel.t_longitudina
 # If the TIE constraints defined between the edges and the surfaces are not set with thickness=ON, you need to consider the panels to each start at the half-thickness of the surface
 centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange) + centroid_offset
 
+# The centroid is based on the half-thickness of the plates
+A_panel = panel.width * panel.t_panel
+A_web = (panel.h_longitudinal_web - (panel.t_panel + panel.t_longitudinal_flange) / 2) * panel.t_longitudinal_web * panel.num_longitudinal
+A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
+
+# The plate is instantiated at (0, 0), therefore, the centroid is simply 0
+y_panel = 0.0
+y_web = panel.h_longitudinal_web / 2
+y_flange = panel.h_longitudinal_web
+
+centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange) + centroid_offset
+
 # Apply load to the left most edge of the panel
 web_step = panel.width / (panel.num_longitudinal + 1)
 current_step = web_step
@@ -1202,6 +1214,9 @@ centroid_pairs_free = set((centroid_labels_free[i], centroid_labels_free[i+1]) f
 
 #equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_fixed, linked_dof=[1])
 equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_free, linked_dof=[1])
+
+# Link via constraints instead?
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
