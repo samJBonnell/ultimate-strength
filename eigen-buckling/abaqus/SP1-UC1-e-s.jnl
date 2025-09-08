@@ -1,0 +1,940 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].ConstrainedSketch(name='__profile__', sheetSize=4.0)
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-1.5, 0.0), point2=(
+    1.5, 0.0))
+mdb.models['Model-1'].sketches['__profile__'].HorizontalConstraint(
+    addUndoState=False, entity=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[2])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-0.9, 0.0), point2=(
+    -0.9, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__profile__'].geometry[3])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-0.3, 0.0), point2=(
+    -0.3, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__profile__'].geometry[4])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(0.3, 0.0), point2=(
+    0.3, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__profile__'].geometry[5])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(0.9, 0.0), point2=(
+    0.9, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__profile__'].geometry[6])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-0.95, 0.125), 
+    point2=(-0.85, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].HorizontalConstraint(
+    addUndoState=False, entity=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[7])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-0.35, 0.125), 
+    point2=(-0.25, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].HorizontalConstraint(
+    addUndoState=False, entity=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[8])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(0.25, 0.125), 
+    point2=(0.35, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].HorizontalConstraint(
+    addUndoState=False, entity=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[9])
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(0.85, 0.125), 
+    point2=(0.95, 0.125))
+mdb.models['Model-1'].sketches['__profile__'].HorizontalConstraint(
+    addUndoState=False, entity=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[10])
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='Part-1', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].parts['Part-1'].BaseShellExtrude(depth=3.0, sketch=
+    mdb.models['Model-1'].sketches['__profile__'])
+del mdb.models['Model-1'].sketches['__profile__']
+# Save by sambonnell on 2025_09_04-18.13.13; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-18.13.14; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].Material(name='steel')
+mdb.models['Model-1'].materials['steel'].Density(table=((7850.0, ), ))
+mdb.models['Model-1'].materials['steel'].Elastic(table=((210000000000.0, 0.3), 
+    ))
+mdb.models['Model-1'].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+    integrationRule=SIMPSON, material='steel', name='Section-1', 
+    nodalThicknessField='', numIntPts=5, poissonDefinition=DEFAULT, 
+    preIntegrate=OFF, temperature=GRADIENT, thickness=0.01, thicknessField='', 
+    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
+mdb.models['Model-1'].sections.changeKey(fromName='Section-1', toName='plate')
+mdb.models['Model-1'].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+    integrationRule=SIMPSON, material='steel', name='Section-2', 
+    nodalThicknessField='', numIntPts=5, poissonDefinition=DEFAULT, 
+    preIntegrate=OFF, temperature=GRADIENT, thickness=0.004, thicknessField='', 
+    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
+mdb.models['Model-1'].sections.changeKey(fromName='Section-2', toName='flange')
+mdb.models['Model-1'].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+    integrationRule=SIMPSON, material='steel', name='Section-3', 
+    nodalThicknessField='', numIntPts=5, poissonDefinition=DEFAULT, 
+    preIntegrate=OFF, temperature=GRADIENT, thickness=0.078, thicknessField='', 
+    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
+mdb.models['Model-1'].sections.changeKey(fromName='Section-3', toName='web')
+mdb.models['Model-1'].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+    integrationRule=SIMPSON, material='steel', name='local-thickness', 
+    nodalThicknessField='', numIntPts=5, poissonDefinition=DEFAULT, 
+    preIntegrate=OFF, temperature=GRADIENT, thickness=0.78, thicknessField='', 
+    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
+mdb.models['Model-1'].sections.changeKey(fromName='local-thickness', toName=
+    'local-web-thickness')
+mdb.models['Model-1'].StaticStep(name='eigen', previous='Initial')
+del mdb.models['Model-1'].steps['eigen']
+mdb.models['Model-1'].BuckleStep(maxIterations=500, name='eigen', numEigen=5, 
+    previous='Initial', vectors=10)
+mdb.models['Model-1'].parts['Part-1'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=0.025)
+mdb.models['Model-1'].parts['Part-1'].setElementType(elemTypes=(ElemType(
+    elemCode=S4R, elemLibrary=STANDARD, secondOrderAccuracy=OFF, 
+    hourglassControl=DEFAULT), ElemType(elemCode=S3, elemLibrary=STANDARD)), 
+    regions=(mdb.models['Model-1'].parts['Part-1'].faces.getSequenceFromMask((
+    '[#1ffff ]', ), ), ))
+mdb.models['Model-1'].parts['Part-1'].generateMesh()
+mdb.models['Model-1'].parts['Part-1'].PartFromMesh(copySets=True, name='panel')
+mdb.meshEditOptions.setValues(enableUndo=True, maxUndoCacheElements=0.5)
+mdb.models['Model-1'].parts['panel'].mergeNodes(node1=
+    mdb.models['Model-1'].parts['panel'].nodes[43], node2=
+    mdb.models['Model-1'].parts['panel'].nodes[17599])
+mdb.models['Model-1'].parts['panel'].undoMeshEdit()
+mdb.models['Model-1'].parts['panel'].editNode(coordinate2=0.0132275, nodes=
+    mdb.models['Model-1'].parts['panel'].nodes.getSequenceFromMask(mask=(
+    '[#0:30 #800000 #0:11 #100 #0:10 #2000000 #0:11', ' #400 ]', ), ))
+mdb.models['Model-1'].parts['panel'].editNode(coordinate2=0.0132275, nodes=
+    mdb.models['Model-1'].parts['panel'].nodes.getSequenceFromMask(mask=(
+    '[#0:30 #1000000 #0:11 #200 #0:10 #4000000 #0:11', ' #800 ]', ), ))
+# Save by sambonnell on 2025_09_04-18.25.17; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-18.25.39; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.DatumCsysByDefault(CARTESIAN)
+mdb.models['Model-1'].rootAssembly.Instance(dependent=ON, name='panel-1', part=
+    mdb.models['Model-1'].parts['panel'])
+mdb.models['Model-1'].rootAssembly.rotate(angle=90.0, axisDirection=(0.0, 1.0, 
+    0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=('panel-1', ))
+mdb.models['Model-1'].rootAssembly.rotate(angle=90.0, axisDirection=(1.0, 0.0, 
+    0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=('panel-1', ))
+mdb.models['Model-1'].rootAssembly.translate(instanceList=('panel-1', ), 
+    vector=(-1.5, 0.0, 0.0))
+# Save by sambonnell on 2025_09_04-18.26.53; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.Set(name='Set-1', nodes=
+    mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:53 #4000000 ]', ), ))
+mdb.models['Model-1'].rootAssembly.Set(name='Set-2', nodes=
+    mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:42 #200 ]', ), ))
+mdb.models['Model-1'].rootAssembly.Set(name='Set-3', nodes=
+    mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:65 #800 ]', ), ))
+mdb.models['Model-1'].rootAssembly.Set(name='Set-4', nodes=
+    mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:30 #1000000 ]', ), ))
+mdb.models['Model-1'].Equation(name='Constraint-1', terms=((-1.0, 'Set-1', 1), 
+    (1.0, 'Set-2', 1)))
+mdb.models['Model-1'].Equation(name='Constraint-2', terms=((-1.0, 'Set-2', 1), 
+    (1.0, 'Set-3', 1)))
+mdb.models['Model-1'].Equation(name='Constraint-3', terms=((-1.0, 'Set-3', 1), 
+    (1.0, 'Set-4', 1)))
+mdb.models['Model-1'].DisplacementBC(amplitude=UNSET, buckleCase=
+    PERTURBATION_AND_BUCKLING, createStepName='eigen', distributionType=UNIFORM
+    , fieldName='', fixed=OFF, localCsys=None, name='Fixed-End', region=Region(
+    nodes=mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:30 #800000 #0:11 #100 #0:10 #2000000 #0:11', ' #400 ]', ), )), 
+    u1=0.0, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-1'].DisplacementBC(amplitude=UNSET, buckleCase=
+    PERTURBATION_AND_BUCKLING, createStepName='eigen', distributionType=UNIFORM
+    , fieldName='', fixed=OFF, localCsys=None, name='Centre', region=Region(
+    nodes=mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:376 #8 ]', ), )), u1=UNSET, u2=0.0, u3=UNSET, ur1=UNSET, ur2=
+    UNSET, ur3=UNSET)
+mdb.models['Model-1'].DisplacementBC(amplitude=UNSET, buckleCase=
+    PERTURBATION_AND_BUCKLING, createStepName='eigen', distributionType=UNIFORM
+    , fieldName='', fixed=OFF, localCsys=None, name='Edge', region=Region(
+    nodes=mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#fff #0:3 #f8000000 #ffffffff:5 #7fffff #0:3 #ffffc000', 
+    ' #1f #0:2 #f0000000 #ffffffff:5 #1 #0:2 #ff000000', 
+    ' #ffffffff:2 #fffff ]', ), )), u1=UNSET, u2=UNSET, u3=0.0, ur1=UNSET, ur2=
+    UNSET, ur3=UNSET)
+mdb.models['Model-1'].parts['panel'].SectionAssignment(offset=0.0, offsetField=
+    '', offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['Model-1'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#ffffffff:450 ]', ), )), sectionName='plate', thicknessAssignment=
+    FROM_SECTION)
+mdb.models['Model-1'].parts['panel'].SectionAssignment(offset=0.0, offsetField=
+    '', offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['Model-1'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#0:450 #ffffffff:18 #ffffff #0:14 #ff000000 #ffffffff:18 #ffff', 
+    ' #0:14 #ffff0000 #ffffffff:18 #ff #0:14 #ffffff00 #ffffffff:18 ]', ), )), 
+    sectionName='web', thicknessAssignment=FROM_SECTION)
+mdb.models['Model-1'].parts['panel'].SectionAssignment(offset=0.0, offsetField=
+    '', offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['Model-1'].parts['panel'].elements.getSequenceFromMask(
+    mask=(
+    '[#0:468 #ff000000 #ffffffff:14 #ffffff #0:18 #ffff0000 #ffffffff:14', 
+    ' #ffff #0:18 #ffffff00 #ffffffff:14 #ff #0:18 #ffffffff:15 ]', ), )), 
+    sectionName='flange', thicknessAssignment=FROM_SECTION)
+mdb.models['Model-1'].parts['panel'].SectionAssignment(offset=0.0, offsetField=
+    '', offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['Model-1'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#0:450 #739c #0:17 #e73800 #0:14 #9c000000 #73', 
+    ' #0:17 #e738 #0:14 #739c0000 #0:17 #38000000 #e7', 
+    ' #0:14 #739c00 #0:17 #e7380000 ]', ), )), sectionName=
+    'local-web-thickness', thicknessAssignment=FROM_SECTION)
+# Save by sambonnell on 2025_09_04-18.36.37; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.regenerate()
+mdb.models['Model-1'].ConcentratedForce(cf1=250000.0, createStepName='eigen', 
+    distributionType=UNIFORM, field='', localCsys=None, name='Load-1', region=
+    Region(
+    nodes=mdb.models['Model-1'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:30 #1000000 #0:11 #200 #0:10 #4000000 #0:11', ' #800 ]', ), )))
+# Save by sambonnell on 2025_09_04-18.37.14; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+    explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+    memory=90, memoryUnits=PERCENTAGE, model='Model-1', modelPrint=OFF, 
+    multiprocessingMode=DEFAULT, name='eigen', nodalOutputPrecision=SINGLE, 
+    numCpus=4, numDomains=4, numGPUs=0, numThreadsPerMpiProcess=1, queue=None, 
+    resultsFormat=ODB, scratch='', type=ANALYSIS, userSubroutine='', waitHours=
+    0, waitMinutes=0)
+mdb.jobs.changeKey(fromName='eigen', toName='SP-UC1-e-s')
+mdb.jobs.changeKey(fromName='SP-UC1-e-s', toName='SP1-UC1-e-s')
+mdb.models.changeKey(fromName='Model-1', toName='eigen')
+mdb.Model(name='riks', objectToCopy=mdb.models['eigen'])
+del mdb.jobs['SP1-UC1-e-s']
+mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+    explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+    memory=90, memoryUnits=PERCENTAGE, model='eigen', modelPrint=OFF, 
+    multiprocessingMode=DEFAULT, name='SP1-UC1-e-s', nodalOutputPrecision=
+    SINGLE, numCpus=4, numDomains=4, numGPUs=0, numThreadsPerMpiProcess=1, 
+    queue=None, resultsFormat=ODB, scratch='', type=ANALYSIS, userSubroutine=''
+    , waitHours=0, waitMinutes=0)
+# Save by sambonnell on 2025_09_04-18.41.20; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-19.36.56; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].parts['Part-1'].deleteMesh()
+mdb.models['eigen'].parts['Part-1'].seedEdgeBySize(constraint=FINER, 
+    deviationFactor=0.1, edges=
+    mdb.models['eigen'].parts['Part-1'].edges.getSequenceFromMask((
+    '[#e0708a1 #381c ]', ), ), minSizeFactor=0.1, size=0.0216667)
+mdb.models['eigen'].parts['Part-1'].seedEdgeBySize(constraint=FINER, 
+    deviationFactor=0.1, edges=
+    mdb.models['eigen'].parts['Part-1'].edges.getSequenceFromMask(('[#f75e ]', 
+    ), ), minSizeFactor=0.1, size=0.02)
+mdb.models['eigen'].parts['Part-1'].seedEdgeBySize(constraint=FINER, 
+    deviationFactor=0.1, edges=
+    mdb.models['eigen'].parts['Part-1'].edges.getSequenceFromMask((
+    '[#f1f80000 #fc7e3 ]', ), ), minSizeFactor=0.1, size=0.025)
+mdb.models['eigen'].parts['Part-1'].generateMesh()
+# Save by sambonnell on 2025_09_04-19.43.16; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+del mdb.models['eigen'].parts['panel']
+mdb.models['eigen'].parts['Part-1'].PartFromMesh(copySets=True, name='panel')
+mdb.models['eigen'].parts['panel'].SectionAssignment(offset=0.0, offsetField=''
+    , offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['eigen'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#ffffffff:703 #f ]', ), )), sectionName='plate', 
+    thicknessAssignment=FROM_SECTION)
+mdb.models['eigen'].parts['panel'].SectionAssignment(offset=0.0, offsetField=''
+    , offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['eigen'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#0:703 #fffffff0 #ffffffff:27 #ff #0:18 #ffffffff:28 #f', 
+    ' #0:17 #f0000000 #ffffffff:28 #0:18 #ff000000 #ffffffff:27 #fffffff ]', ), 
+    )), sectionName='web', thicknessAssignment=FROM_SECTION)
+mdb.models['eigen'].parts['panel'].SectionAssignment(offset=0.0, offsetField=''
+    , offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['eigen'].parts['panel'].elements.getSequenceFromMask(
+    mask=(
+    '[#0:731 #ffffff00 #ffffffff:18 #0:28 #fffffff0 #ffffffff:17 #fffffff', 
+    ' #0:28 #ffffffff:18 #ffffff #0:27 #f0000000 #ffffffff:18 #fffff ]', ), )), 
+    sectionName='flange', thicknessAssignment=FROM_SECTION)
+mdb.models['eigen'].parts['panel'].SectionAssignment(offset=0.0, offsetField=''
+    , offsetType=MIDDLE_SURFACE, region=Region(
+    elements=mdb.models['eigen'].parts['panel'].elements.getSequenceFromMask(
+    mask=('[#0:703 #38e380 #0:26 #8e000000 #e3 #0:18 #38e38', 
+    ' #0:26 #38e00000 #e #0:17 #80000000 #38e3 #0:26', 
+    ' #e38e0000 #0:18 #38000000 #38e #0:26 #e38e000 ]', ), )), sectionName=
+    'local-web-thickness', thicknessAssignment=FROM_SECTION)
+mdb.models['eigen'].rootAssembly.regenerate()
+mdb.meshEditOptions.setValues(enableUndo=True, maxUndoCacheElements=0.5)
+mdb.models['eigen'].parts['panel'].editNode(coordinate2=0.0132275, nodes=
+    mdb.models['eigen'].parts['panel'].nodes.getSequenceFromMask(mask=(
+    '[#0:38 #300 #0:13 #600000 #0:14 #c #0:13', ' #18000 ]', ), ))
+# Save by sambonnell on 2025_09_04-19.49.11; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-19.49.14; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].rootAssembly.regenerate()
+mdb.models['eigen'].rootAssembly.regenerate()
+mdb.models['eigen'].rootAssembly.deleteSets(setNames=('Set-1', 'Set-2', 
+    'Set-3', 'Set-4'))
+mdb.models['eigen'].rootAssembly.Set(name='Set-1', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:67 #8 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Set-2', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:52 #400000 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Set-3', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:81 #10000 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Set-4', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 ]', ), ))
+mdb.models['eigen'].loads['Load-1'].setValues(distributionType=UNIFORM, field=
+    '', region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 #0:13 #400000 #0:14 #8 #0:13', ' #10000 ]', ), )))
+mdb.models['eigen'].boundaryConditions['Centre'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:568 #800 ]', ), )))
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#fff #0:4 #fe000000 #ffffffff:7 #1f #0:3 #fc000000', 
+    ' #7fffff #0:4 #fffff000 #ffffffff:5 #7ffffff #0:4 #ffff0000', 
+    ' #ffffffff:3 #f ]', ), )))
+mdb.models['eigen'].boundaryConditions['Fixed-End'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 #0:13 #200000 #0:14 #4 #0:13', ' #8000 ]', ), )))
+# Save by sambonnell on 2025_09_04-19.52.11; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-19.52.23; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].Coupling(controlPoint=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 #0:13 #400000 #0:14 #8 #0:13', ' #10000 ]', ), )), 
+    couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE, localCsys=None, 
+    name='Constraint-4', surface=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#a66 #0:4 #fe000000 #3fffff #0:10 #fc000000 #7fffff', 
+    ' #0:9 #c0000000 #7ffffff #0:4 #ffff0000 #1fff #0', ' #ffffff80 #f ]', ), 
+    )), u1=ON, u2=OFF, u3=OFF, ur1=OFF, ur2=OFF, ur3=OFF)
+mdb.models['eigen'].Coupling(controlPoint=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 #0:13 #200000 #0:14 #4 #0:13', ' #8000 ]', ), )), 
+    couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE, localCsys=None, 
+    name='Constraint-5', surface=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#599 #0:10 #fffff800 #ffffffff #1f #0:9 #fffff000', 
+    ' #1ff #0:10 #ffffe000 #ffffffff #7f ]', ), )), u1=ON, u2=OFF, u3=OFF, ur1=
+    OFF, ur2=OFF, ur3=OFF)
+mdb.models['eigen'].constraints.delete(('Constraint-4', 'Constraint-5'))
+mdb.models['eigen'].rootAssembly.Set(name='Set-5', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#200 ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-4', terms=((-1.0, 'Set-4', 1), (
+    1.0, 'Set-5', 1)))
+mdb.models['eigen'].Coupling(controlPoint=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#200 ]', ), )), couplingType=KINEMATIC, influenceRadius=
+    WHOLE_SURFACE, localCsys=None, name='Constraint-5', surface=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#866 #0:4 #fe000000 #3fffff #0:10 #fc000000 #7fffff', 
+    ' #0:9 #c0000000 #7ffffff #0:4 #ffff0000 #1fff #0', ' #ffffff80 #f ]', ), 
+    )), u1=ON, u2=OFF, u3=OFF, ur1=OFF, ur2=OFF, ur3=OFF)
+# Save by sambonnell on 2025_09_04-20.11.00; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#79d #0:5 #ffc00000 #ffffffff:6 #1f #0:9 #fffff000', 
+    ' #ffffffff:4 #3fffffff #0:6 #ffffe000 #ffffffff #7f ]', ), )))
+mdb.models['eigen'].constraints['Constraint-5'].setValues(u3=ON)
+del mdb.models['eigen'].constraints['Constraint-5']
+mdb.models['eigen'].rootAssembly.deleteSets(setNames=('Set-1', 'Set-2', 
+    'Set-3', 'Set-4', 'Set-5'))
+mdb.models['eigen'].constraints.delete(('Constraint-1', 'Constraint-2', 
+    'Constraint-3', 'Constraint-4'))
+mdb.models['eigen'].rootAssembly.Set(name='Setter Node', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:67 #8 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Follower Nodes', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#a66 #0:4 #fe000000 #3fffff #0:10 #fc000000 #7fffff', 
+    ' #0:9 #c0000000 #7ffffff #0:4 #ffff0000 #1fff #0', 
+    ' #ffffff80 #20f #0:13 #400000 #0:28 #10000 ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-1', terms=((-1.0, 
+    'Follower Nodes', 1), (1.0, 'Setter Node', 1)))
+mdb.models['eigen'].rootAssembly.Set(name='Setter-2', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Follower-2', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#599 #0:10 #fffff800 #ffffffff #1f #0:9 #fffff000', 
+    ' #1ff #0:10 #ffffe000 #ffffffff #7f #0:14 #200000', 
+    ' #0:14 #4 #0:13 #8000 ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-2', terms=((-1.0, 'Follower-2', 
+    1), (1.0, 'Setter-2', 1)))
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#fff #0:4 #fe000000 #ffffffff:7 #1f #0:3 #fc000000', 
+    ' #7fffff #0:4 #fffff000 #ffffffff:5 #7ffffff #0:4 #ffff0000', 
+    ' #ffffffff:3 #f ]', ), )))
+# Save by sambonnell on 2025_09_04-20.34.37; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].steps['eigen'].setValues(blockSize=DEFAULT, eigensolver=
+    LANCZOS, maxBlocks=DEFAULT, minEigen=None)
+mdb.models['eigen'].steps['eigen'].setValues(eigensolver=SUBSPACE, 
+    maxIterations=500, vectors=10)
+mdb.models['eigen'].boundaryConditions['Centre'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:568 #2200 ]', ), )))
+# Save by sambonnell on 2025_09_04-20.46.26; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].loads['Load-1'].setValues(cf1=1000000.0, distributionType=
+    UNIFORM, field='', region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:67 #8 ]', ), )))
+# Save by sambonnell on 2025_09_04-20.54.56; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].constraints.delete(('Constraint-1', 'Constraint-2'))
+mdb.models['eigen'].rootAssembly.deleteSets(setNames=('Follower Nodes', 
+    'Follower-2', 'Setter Node', 'Setter-2'))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Centroid-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:67 #8 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Centroid-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 #0:13 #400000 #0:28 #10000 ]', ), ))
+mdb.models['eigen'].boundaryConditions['Centre'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:568 #800 ]', ), )))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Edge-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#4 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Edge-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#a62 #0:4 #fe000000 #3fffff #0:10 #fc000000 #7fffff', 
+    ' #0:9 #c0000000 #7ffffff #0:4 #ffff0000 #1fff #0', ' #ffffff80 #f ]', ), 
+    ))
+mdb.models['eigen'].Equation(name='Constraint-1', terms=((-1.0, 
+    'Free-Edge-Follow', 1), (1.0, 'Free-Edge-Master', 1)))
+mdb.models['eigen'].rootAssembly.Set(name='Fixed-Edge-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#100 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Fixed-Edge-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#499 #0:10 #fffff800 #ffffffff #1f #0:9 #fffff000', 
+    ' #1ff #0:10 #ffffe000 #ffffffff #7f ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-2', terms=((-1.0, 
+    'Fixed-Edge-Follow', 1), (1.0, 'Fixed-Edge-Master', 1)))
+# Save by sambonnell on 2025_09_04-21.02.06; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].Equation(name='Constraint-3', terms=((-1.0, 
+    'Free-Centroid-Follow', 1), (1.0, 'Free-Centroid-Master', 1)))
+# Save by sambonnell on 2025_09_04-21.02.33; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].rootAssembly.Set(name='Free-Web-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#2 ]', ), ))
+del mdb.models['eigen'].rootAssembly.sets['Free-Web-Master']
+mdb.models['eigen'].rootAssembly.Set(name='Free-Web1-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#2 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Web2-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#20 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Web3-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#800 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Free-Web4-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#40 ]', ), ))
+mdb.models['eigen'].rootAssembly.sets.changeKey(fromName='Free-Web1-Master', 
+    toName='Web1-Master')
+mdb.models['eigen'].rootAssembly.sets.changeKey(fromName='Free-Web2-Master', 
+    toName='Web2-Master')
+mdb.models['eigen'].rootAssembly.sets.changeKey(fromName='Free-Web3-Master', 
+    toName='Web3-Master')
+mdb.models['eigen'].rootAssembly.sets.changeKey(fromName='Free-Web4-Master', 
+    toName='Web4-Master')
+mdb.models['eigen'].rootAssembly.Set(name='Web1-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#3000001 #0:65 #c0000000 #ff ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Web2-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#c0010 #0:51 #7fe0000 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Web3-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#c0000400 #0:80 #1ff800 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Web4-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#3080 #0:37 #3ff0 ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-4', terms=((-1.0, 'Web1-Follow', 
+    1), (1.0, 'Web1-Master', 1)))
+mdb.models['eigen'].Equation(name='Constraint-5', terms=((-1.0, 'Web2-Follow', 
+    1), (1.0, 'Web2-Master', 1)))
+mdb.models['eigen'].Equation(name='Constraint-6', terms=((-1.0, 'Web3-Follow', 
+    1), (1.0, 'Web3-Master', 1)))
+mdb.models['eigen'].Equation(name='Constraint-7', terms=((-1.0, 'Web4-Follow', 
+    1), (1.0, 'Web4-Master', 1)))
+# Save by sambonnell on 2025_09_04-21.12.24; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].constraints['Constraint-7'].setValues(terms=((-1.0, 
+    'Web4-Follow', 2), (1.0, 'Web4-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-6'].setValues(terms=((-1.0, 
+    'Web3-Follow', 2), (1.0, 'Web3-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-5'].setValues(terms=((-1.0, 
+    'Web2-Follow', 2), (1.0, 'Web2-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-4'].setValues(terms=((-1.0, 
+    'Web1-Follow', 2), (1.0, 'Web1-Master', 2)))
+# Save by sambonnell on 2025_09_04-21.13.10; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-21.13.12; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].loads['Load-1'].setValues(cf1=250000.0, distributionType=
+    UNIFORM, field='', region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 #0:13 #400000 #0:14 #8 #0:13', ' #10000 ]', ), )))
+# Save by sambonnell on 2025_09_04-21.19.39; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Centre'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:67 #4 ]', ), )))
+# Save by sambonnell on 2025_09_04-21.22.56; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-21.22.57; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Centre'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:568 #800 ]', ), )))
+mdb.models['eigen'].constraints['Constraint-1'].setValues(terms=((1.0, 
+    'Free-Edge-Follow', 1), (-1.0, 'Free-Edge-Master', 1)))
+mdb.models['eigen'].constraints['Constraint-2'].setValues(terms=((1.0, 
+    'Fixed-Edge-Follow', 1), (-1.0, 'Fixed-Edge-Master', 1)))
+mdb.models['eigen'].constraints['Constraint-3'].setValues(terms=((1.0, 
+    'Free-Centroid-Follow', 1), (-1.0, 'Free-Centroid-Master', 1)))
+mdb.models['eigen'].constraints['Constraint-4'].setValues(terms=((1.0, 
+    'Web1-Follow', 2), (-1.0, 'Web1-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-5'].setValues(terms=((1.0, 
+    'Web2-Follow', 2), (-1.0, 'Web2-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-6'].setValues(terms=((1.0, 
+    'Web3-Follow', 2), (-1.0, 'Web3-Master', 2)))
+mdb.models['eigen'].constraints['Constraint-7'].setValues(terms=((1.0, 
+    'Web4-Follow', 2), (-1.0, 'Web4-Master', 2)))
+# Save by sambonnell on 2025_09_04-21.26.19; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-21.29.07; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_04-22.02.03; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_05-18.21.21; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Fixed-End'].suppress()
+mdb.models['eigen'].rootAssembly.Set(name='Fixed-Centroid-Master', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 ]', ), ))
+mdb.models['eigen'].rootAssembly.Set(name='Fixed-Centroid-Follow', nodes=
+    mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:52 #200000 #0:14 #4 #0:13 #8000 ]', ), ))
+mdb.models['eigen'].Equation(name='Constraint-8', terms=((1.0, 
+    'Fixed-Centroid-Follow', 1), (-1.0, 'Fixed-Centroid-Master', 1)))
+# Save by sambonnell on 2025_09_05-18.28.03; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].ConcentratedForce(cf1=-250000.0, createStepName='eigen', 
+    distributionType=UNIFORM, field='', localCsys=None, name='Load-2', region=
+    Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 #0:13 #200000 #0:14 #4 #0:13', ' #8000 ]', ), )))
+# Save by sambonnell on 2025_09_05-18.28.36; build 2022 2021_09_15-10.57.30 176069
+# Save by sambonnell on 2025_09_05-18.35.25; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Fixed-End'].resume()
+mdb.models['eigen'].loads['Load-2'].suppress()
+mdb.models['eigen'].constraints['Constraint-8'].suppress()
+mdb.models['eigen'].constraints.changeKey(fromName='Constraint-8', toName=
+    'Fixed-Edge-U1-Constraint')
+# Save by sambonnell on 2025_09_05-18.38.04; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].DisplacementBC(amplitude=UNSET, buckleCase=
+    PERTURBATION_AND_BUCKLING, createStepName='eigen', distributionType=UNIFORM
+    , fieldName='', fixed=OFF, localCsys=None, name='U2-Constraint', region=
+    Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#30c #0:5 #ffc00000 #ffffffff:4 #7ff #0:12 #fffffe00', 
+    ' #ffffffff:3 #3fffffff ]', ), )), u1=UNSET, u2=0.0, u3=UNSET, ur1=UNSET, 
+    ur2=UNSET, ur3=UNSET)
+mdb.models['eigen'].boundaryConditions['Centre'].suppress()
+# Save by sambonnell on 2025_09_05-18.38.53; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+del mdb.models['eigen'].boundaryConditions['U2-Constraint']
+mdb.models['eigen'].boundaryConditions['Centre'].resume()
+# Save by sambonnell on 2025_09_05-18.46.42; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#cf3 #0:4 #fe000000 #3fffff #0:4 #fffff800 #ffffffff', 
+    ' #1f #0:3 #fc000000 #7fffff #0:4 #fffff000 #1ff', 
+    ' #0:3 #c0000000 #7ffffff #0:4 #ffff0000 #ffffffff:3 #f ]', ), )))
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#0:6 #ffc00000 #ffffffff:4 #7ff #0:12 #fffffe00 #ffffffff:3', 
+    ' #3fffffff #0:9 #300 #0:13 #600000 #0:14 #c', ' #0:13 #18000 ]', ), )))
+mdb.models['eigen'].boundaryConditions['Edge'].setValues(buckleCase=
+    PERTURBATION_AND_BUCKLING, region=Region(
+    nodes=mdb.models['eigen'].rootAssembly.instances['panel-1'].nodes.getSequenceFromMask(
+    mask=('[#fff #0:4 #fe000000 #ffffffff:7 #1f #0:3 #fc000000', 
+    ' #7fffff #0:4 #fffff000 #ffffffff:5 #7ffffff #0:4 #ffff0000', 
+    ' #ffffffff:3 #f ]', ), )))
+# Save by sambonnell on 2025_09_05-18.56.10; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].parts['panel'].setValues(space=TWO_D_PLANAR, type=
+    DEFORMABLE_BODY)
+#* Cannot assign a 2D modeling space to the orphan mesh.
+#* The mesh does not lie in the X-Y plane.
+mdb.models['eigen'].parts['panel'].setValues(space=THREE_D, type=
+    DEFORMABLE_BODY)
+# Save by sambonnell on 2025_09_05-18.57.26; build 2022 2021_09_15-10.57.30 176069
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['eigen'].rootAssembly.Instance(dependent=ON, name='Part-1-1', part=
+    mdb.models['eigen'].parts['Part-1'])
+mdb.models['eigen'].rootAssembly.features['panel-1'].suppress()
+mdb.models['eigen'].rootAssembly.rotate(angle=90.0, axisDirection=(0.0, 0.0, 
+    1.0), axisPoint=(0.0, 0.0, 0.0), instanceList=('panel-1', 'Part-1-1'))
+mdb.models['eigen'].rootAssembly.rotate(angle=90.0, axisDirection=(0.0, 1.0, 
+    0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=('panel-1', 'Part-1-1'))
+mdb.models['eigen'].rootAssembly.translate(instanceList=('panel-1', 'Part-1-1')
+    , vector=(-1.5, 0.0, 0.0))
+mdb.models['eigen'].rootAssembly.features['panel-1'].resume()
+mdb.models['eigen'].rootAssembly.features['panel-1'].suppress()
+del mdb.models['eigen'].rootAssembly.features['Part-1-1']
+mdb.models['eigen'].rootAssembly.features['panel-1'].resume()
+# Save by sambonnell on 2025_09_05-19.12.00; build 2022 2021_09_15-10.57.30 176069
