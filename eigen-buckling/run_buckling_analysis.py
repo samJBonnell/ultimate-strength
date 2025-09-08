@@ -41,7 +41,7 @@ imperfection_file = 'buckling_eigen_panel'
 # Define the imperfection block
 imperfection_block = [
     f'*IMPERFECTION, FILE={imperfection_file}, STEP=1\n',
-    '1, 0.006\n'
+    '1, 0.00061\n'
 ]
 
 # Define the field output block
