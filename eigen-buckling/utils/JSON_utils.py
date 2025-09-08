@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 from tqdm import tqdm
 
-from models.IO_hydrostatic import PanelInput, PanelOutput
+from models.IO_buckling import PanelInput, PanelOutput
 
 @dataclass
 class Record:

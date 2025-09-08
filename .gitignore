@@ -32,6 +32,11 @@
 *.cae
 *.dat
 *.fil
+*.jsonl
+
+# Data directory #
+######################
+data/
 
 # OS generated files #
 ######################
