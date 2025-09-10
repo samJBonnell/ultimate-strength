@@ -1,0 +1,28 @@
+<Description>
+   ***  ABAQUS/ABQcaeK rank 0 received the SIGABRT signal
+</Description>
+
+<Context>
+   UNKNOWN
+</Context>
+
+<Callstack>
+</Callstack>
+
+<Memory>
+   <Current>             210 MB </Current>
+   <Resident>            220 MB </Resident>
+   <Physical>          16176 MB </Physical>
+   <Limit>                 0 MB </Limit>
+   <Accessible>        16176 MB </Accessible>
+   <Allocator>            DL    </Allocator>
+</Memory>
+
+<Directories>
+  <current> C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus </current> 
+     <temp> C:\Users\sbonnell\AppData\Local\Temp </temp>
+</Directories>
+
+<Installation>
+</Installation>
+

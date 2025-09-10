@@ -1,6 +1,6 @@
 1
 
-   Abaqus 2022                                  Date 04-Sep-2025   Time 17:36:50
+   Abaqus 2020                                  Date 08-Sep-2025   Time 16:11:16
    For use by UNIVERSITY OF BRITISH COLUMBIA under license from Dassault Systemes or its subsidiary.
 
  ABAQUS Buckling Analysis Set                                                    
@@ -35,21 +35,25 @@
      DETAILED OUTPUT OF DIAGNOSTICS TO DATABASE REQUESTED
 
      PRINT OF INCREMENT NUMBER, TIME, ETC., TO THE MESSAGE FILE EVERY     1  INCREMENTS
+
+     ELEMENT OPERATIONS WILL NOT BE CARRIED OUT IN PARALLEL
  
-	SYMMETRIC DIRECT SPARSE SOLVER RUNNING ON
- 	1 HOST:        1 MPI RANK  x 1 THREAD
- 	NUMBER OF EQUATIONS:     172692
- 	NUMBER OF RHS:           1
- 	NUMBER OF FLOPS:         2.561e+10
+     GPU SOLVER ACCELERATION ENABLED
+
+
+  NUMBER OF EQUATIONS =    172692     NUMBER OF RHS =    1
+  NUMBER OF FLOATING PT. OPERATIONS =  2.56E+10
+
+  USING THE DIRECT SOLVER WITH   4 PROCESSORS
 
      CHECK POINT   START OF SOLVER    
 
      CHECK POINT  END OF SOLVER       
 
-       ELAPSED USER TIME (SEC)      =   2.2000    
-       ELAPSED SYSTEM TIME (SEC)    =   1.2000    
-       ELAPSED TOTAL CPU TIME (SEC) =   3.4000    
-       ELAPSED WALLCLOCK TIME (SEC) =          4
+       ELAPSED USER TIME (SEC)      =   2.6000    
+       ELAPSED SYSTEM TIME (SEC)    =  0.20000    
+       ELAPSED TOTAL CPU TIME (SEC) =   2.8000    
+       ELAPSED WALLCLOCK TIME (SEC) =          1
  
      ITERATION 1
       1       3.281221e+02     
@@ -1092,7 +1096,7 @@
                        1  REORDERING OF EQUATIONS TO MINIMIZE WAVEFRONT
                        0  ADDITIONAL RESIDUAL EVALUATIONS FOR LINE SEARCHES
                        0  ADDITIONAL OPERATOR EVALUATIONS FOR LINE SEARCHES
-                       1  WARNING MESSAGES DURING USER INPUT PROCESSING
+                       2  WARNING MESSAGES DURING USER INPUT PROCESSING
                        0  WARNING MESSAGES DURING ANALYSIS
                        0  ANALYSIS WARNINGS ARE NUMERICAL PROBLEM MESSAGES
                        0  ANALYSIS WARNINGS ARE NEGATIVE EIGENVALUE MESSAGES
@@ -1101,7 +1105,7 @@
 
 
      JOB TIME SUMMARY
-       USER TIME (SEC)      =   118.70    
-       SYSTEM TIME (SEC)    =   26.000    
-       TOTAL CPU TIME (SEC) =   144.70    
-       WALLCLOCK TIME (SEC) =        148
+       USER TIME (SEC)      =   282.40    
+       SYSTEM TIME (SEC)    =   12.200    
+       TOTAL CPU TIME (SEC) =   294.60    
+       WALLCLOCK TIME (SEC) =        321

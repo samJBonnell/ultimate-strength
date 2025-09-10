@@ -34,7 +34,7 @@ import odbAccess
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # !!! Set correct working directory !!!
-working_directory = r'Z:\\lase\\ultimate_strength'
+working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\eigen-buckling'
 input_directory = r'data\\input.jsonl'
 output_directory = r'data\\output.jsonl'
 os.chdir(working_directory)

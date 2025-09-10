@@ -1,0 +1,1045 @@
+# -*- coding: mbcs -*-
+#
+# Abaqus/CAE Release 2020 replay file
+# Internal Version: 2019_09_13-10.49.31 163176
+# Run by sbonnell on Mon Sep  8 17:49:41 2025
+#
+
+# from driverUtils import executeOnCaeGraphicsStartup
+# executeOnCaeGraphicsStartup()
+#: Executing "onCaeGraphicsStartup()" in the site directory ...
+from abaqus import *
+from abaqusConstants import *
+session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=389.915618896484, 
+    height=228.66667175293)
+session.viewports['Viewport: 1'].makeCurrent()
+session.viewports['Viewport: 1'].maximize()
+from caeModules import *
+from driverUtils import executeOnCaeStartup
+executeOnCaeStartup()
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
+    referenceRepresentation=ON)
+openMdb(
+    pathName='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/SP1-T2.cae')
+#: The model database "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae" has been opened.
+session.viewports['Viewport: 1'].setValues(displayedObject=None)
+p = mdb.models['eigen-plate'].parts['Part-1']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+mdb.Model(name='eigen-web-panel', objectToCopy=mdb.models['eigen-plate'])
+#: The model "eigen-web-panel" has been created.
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+del mdb.models['eigen-web-panel'].parts['Part-1']
+del mdb.models['eigen-web-panel'].parts['panel']
+a = mdb.models['eigen-web-panel'].rootAssembly
+a.regenerate()
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+#* FeatureError: Regeneration failed
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(interactions=ON, 
+    constraints=ON, connectors=ON, engineeringFeatures=ON, 
+    optimizationTasks=OFF, geometricRestrictions=OFF, stopConditions=OFF)
+a = mdb.models['eigen-web-panel'].rootAssembly
+del a.features['panel-1']
+mdb.models['eigen-web-panel'].rootAssembly.deleteSets(setNames=(
+    'Load-Follower', 'Load-Main', ))
+del mdb.models['eigen-web-panel'].constraints['End-Link']
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, interactions=OFF, constraints=OFF, 
+    engineeringFeatures=OFF)
+del mdb.models['eigen-web-panel'].loads['Load-1']
+mdb.models['eigen-web-panel'].boundaryConditions.delete(('Centre', 'Edge', 
+    'End', ))
+session.viewports['Viewport: 1'].setValues(displayedObject=None)
+s = mdb.models['eigen-web-panel'].ConstrainedSketch(name='__profile__', 
+    sheetSize=200.0)
+g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
+s.setPrimaryObject(option=STANDALONE)
+s.unsetPrimaryObject()
+del mdb.models['eigen-web-panel'].sketches['__profile__']
+s1 = mdb.models['eigen-web-panel'].ConstrainedSketch(name='__profile__', 
+    sheetSize=4.0)
+g, v, d, c = s1.geometry, s1.vertices, s1.dimensions, s1.constraints
+s1.setPrimaryObject(option=STANDALONE)
+s1.Line(point1=(-1.5, 0.0), point2=(1.5, 0.0))
+s1.HorizontalConstraint(entity=g[2], addUndoState=False)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=3.41509, 
+    farPlane=4.12738, width=5.2271, height=2.4433, cameraPosition=(0.443657, 
+    0.0246533, 3.77124), cameraTarget=(0.443657, 0.0246533, 0))
+s1.Line(point1=(0.0, 0.0), point2=(0.0, 0.125))
+s1.VerticalConstraint(entity=g[3], addUndoState=False)
+s1.PerpendicularConstraint(entity1=g[2], entity2=g[3], addUndoState=False)
+s1.CoincidentConstraint(entity1=v[2], entity2=g[2], addUndoState=False)
+s1.EqualDistanceConstraint(entity1=v[0], entity2=v[1], midpoint=v[2], 
+    addUndoState=False)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=3.3859, 
+    farPlane=4.15657, width=5.65556, height=2.64358, cameraPosition=(0.352057, 
+    0.00254883, 3.77124), cameraTarget=(0.352057, 0.00254883, 0))
+p = mdb.models['eigen-web-panel'].Part(name='Part-1', dimensionality=THREE_D, 
+    type=DEFORMABLE_BODY)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+p.BaseShellExtrude(sketch=s1, depth=3.0)
+s1.unsetPrimaryObject()
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+del mdb.models['eigen-web-panel'].sketches['__profile__']
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].partDisplay.setValues(mesh=ON)
+session.viewports['Viewport: 1'].partDisplay.meshOptions.setValues(
+    meshTechnique=ON)
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
+    referenceRepresentation=OFF)
+elemType1 = mesh.ElemType(elemCode=S4R, elemLibrary=STANDARD, 
+    secondOrderAccuracy=OFF, hourglassControl=DEFAULT)
+elemType2 = mesh.ElemType(elemCode=S3, elemLibrary=STANDARD)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+f = p.faces
+faces = f.getSequenceFromMask(mask=('[#7 ]', ), )
+pickedRegions =(faces, )
+p.setElementType(regions=pickedRegions, elemTypes=(elemType1, elemType2))
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/SP1-UC1-e.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/SP1-UC1-e.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       6
+#: Number of Node Sets:          2
+#: Number of Steps:              1
+#: 
+#: Node: PART-1-1.2356
+#:                                         1             2             3        Magnitude
+#: Base coordinates:                  1.62000e+00,  1.20000e+00,  2.16667e-02,      -      
+#: No deformed coordinates for current plot.
+#: 
+#: Node: PART-1-1.2045
+#:                                         1             2             3        Magnitude
+#: Base coordinates:                  1.62000e+00,  1.20000e+00,  0.00000e+00,      -      
+#: No deformed coordinates for current plot.
+#: 
+#: Nodes for distance: PART-1-1.2356, PART-1-1.2045
+#:                                        1             2             3        Magnitude
+#: Base distance:                     0.00000e+00,  0.00000e+00, -2.16667e-02,  2.16667e-02
+#: No deformed coordinates for current plot.
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.90665, 
+    farPlane=10.5781, width=0.858471, height=0.401275, viewOffsetX=0.00871212, 
+    viewOffsetY=-0.18238)
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(mesh=ON)
+session.viewports['Viewport: 1'].assemblyDisplay.meshOptions.setValues(
+    meshTechnique=ON)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+e = p.edges
+pickedEdges = e.getSequenceFromMask(mask=('[#7e ]', ), )
+p.seedEdgeBySize(edges=pickedEdges, size=0.02, deviationFactor=0.1, 
+    constraint=FINER)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+e = p.edges
+pickedEdges = e.getSequenceFromMask(mask=('[#381 ]', ), )
+p.seedEdgeBySize(edges=pickedEdges, size=0.0216667, deviationFactor=0.1, 
+    constraint=FINER)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+p.generateMesh()
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.88802, 
+    farPlane=11.1508, width=5.30612, height=2.48465, viewOffsetX=0.0710658, 
+    viewOffsetY=0.0981762)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.86837, 
+    farPlane=11.1705, width=4.97353, height=2.32891, viewOffsetX=0.154665, 
+    viewOffsetY=-0.0959219)
+p = mdb.models['eigen-web-panel'].parts['Part-1']
+p.PartFromMesh(name='panel', copySets=True)
+p1 = mdb.models['eigen-web-panel'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p1)
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(mesh=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.meshOptions.setValues(
+    meshTechnique=OFF)
+a1 = mdb.models['eigen-web-panel'].rootAssembly
+p = mdb.models['eigen-web-panel'].parts['panel']
+a1.Instance(name='panel-1', part=p, dependent=ON)
+a1 = mdb.models['eigen-web-panel'].rootAssembly
+a1.rotate(instanceList=('panel-1', ), axisPoint=(0.0, 0.0, 0.0), 
+    axisDirection=(0.0, 1.0, 0.0), angle=90.0)
+#: The instance panel-1 was rotated by 90. degrees about the axis defined by the point 0., 0., 0. and the vector 0., 1., 0.
+a1 = mdb.models['eigen-web-panel'].rootAssembly
+a1.rotate(instanceList=('panel-1', ), axisPoint=(0.0, 0.0, 0.0), 
+    axisDirection=(1.0, 0.0, 0.0), angle=90.0)
+#: The instance panel-1 was rotated by 90. degrees about the axis defined by the point 0., 0., 0. and the vector 1., 0., 0.
+a1 = mdb.models['eigen-web-panel'].rootAssembly
+a1.translate(instanceList=('panel-1', ), vector=(-1.5, 0.0, 0.0))
+#: The instance panel-1 was translated by -1.5, 0., 0. with respect to the assembly coordinate system
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.57466, 
+    farPlane=12.1962, width=7.93241, height=3.70785, viewOffsetX=-0.209461, 
+    viewOffsetY=-0.0797763)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.2472, 
+    farPlane=11.8642, width=10.7311, height=5.01606, cameraPosition=(-0.272633, 
+    0.397328, 11.1466), cameraUpVector=(0.483454, 0.765385, -0.424804), 
+    cameraTarget=(-0.276545, -0.644594, 2.18758), viewOffsetX=-0.283364, 
+    viewOffsetY=-0.107923)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.70433, 
+    farPlane=13.6217, width=10.1626, height=4.75032, cameraPosition=(-4.90698, 
+    -4.67465, 9.58978), cameraUpVector=(0.649754, 0.729005, 0.215339), 
+    cameraTarget=(-1.1593, -1.63946, 1.96796), viewOffsetX=-0.268352, 
+    viewOffsetY=-0.102206)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.42563, 
+    farPlane=14.7353, width=9.87074, height=4.6139, cameraPosition=(-7.69817, 
+    -7.87391, 5.08111), cameraUpVector=(0.419084, 0.603978, 0.677923), 
+    cameraTarget=(-1.82371, -2.38449, 0.993742), viewOffsetX=-0.260645, 
+    viewOffsetY=-0.0992708)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.51919, 
+    farPlane=14.5904, width=9.96871, height=4.6597, cameraPosition=(-5.77852, 
+    -8.91006, 5.81604), cameraUpVector=(0.481857, 0.607121, 0.631837), 
+    cameraTarget=(-1.30753, -2.63167, 1.13184), viewOffsetX=-0.263232, 
+    viewOffsetY=-0.100256)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.6298, 
+    farPlane=14.4798, width=7.87353, height=3.68033, viewOffsetX=-0.290814, 
+    viewOffsetY=0.0384423)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.54515, 
+    farPlane=14.7487, width=7.80432, height=3.64798, cameraPosition=(-8.9573, 
+    -7.66208, 3.09561), cameraUpVector=(0.471042, 0.363528, 0.80372), 
+    cameraTarget=(-2.15517, -2.36172, 0.452341), viewOffsetX=-0.288258, 
+    viewOffsetY=0.0381044)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.64261, 
+    farPlane=14.6512, width=6.15544, height=2.87724, viewOffsetX=-0.350462, 
+    viewOffsetY=0.136537)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.63987, 
+    farPlane=14.6539, width=6.96433, height=3.25534, viewOffsetX=-0.339758, 
+    viewOffsetY=0.114215)
+session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=ON, 
+    engineeringFeatures=ON, mesh=OFF)
+session.viewports['Viewport: 1'].partDisplay.meshOptions.setValues(
+    meshTechnique=OFF)
+p1 = mdb.models['eigen-web-panel'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p1)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.09526, 
+    farPlane=10.9436, width=2.02626, height=0.947136, viewOffsetX=-0.475648, 
+    viewOffsetY=-0.205726)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.13252, 
+    farPlane=11.6256, width=2.0369, height=0.95211, cameraPosition=(5.65178, 
+    -0.163235, 8.9834), cameraUpVector=(-0.152318, 0.943777, -0.293402), 
+    cameraTarget=(0.261899, -0.0956718, 1.7519), viewOffsetX=-0.478146, 
+    viewOffsetY=-0.206806)
+p = mdb.models['eigen-web-panel'].parts['panel']
+e = p.elements
+elements = e.getSequenceFromMask(mask=('[#ffffffff:703 #f ]', ), )
+region = regionToolset.Region(elements=elements)
+p = mdb.models['eigen-web-panel'].parts['panel']
+p.SectionAssignment(region=region, sectionName='plate', offset=0.0, 
+    offsetType=MIDDLE_SURFACE, offsetField='', 
+    thicknessAssignment=FROM_SECTION)
+p = mdb.models['eigen-web-panel'].parts['panel']
+e = p.elements
+elements = e.getSequenceFromMask(mask=('[#0:703 #fffffff0 #ffffffff:27 #ff ]', 
+    ), )
+region = regionToolset.Region(elements=elements)
+p = mdb.models['eigen-web-panel'].parts['panel']
+p.SectionAssignment(region=region, sectionName='web', offset=0.0, 
+    offsetType=MIDDLE_SURFACE, offsetField='', 
+    thicknessAssignment=FROM_SECTION)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.07957, 
+    farPlane=11.6786, width=2.93067, height=1.36988, viewOffsetX=-0.289109, 
+    viewOffsetY=-0.112273)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.00074, 
+    farPlane=11.4511, width=2.89804, height=1.35463, cameraPosition=(6.36947, 
+    3.1487, 7.41882), cameraUpVector=(-0.484691, 0.770798, -0.413456), 
+    cameraTarget=(0.197808, 0.054928, 1.61457), viewOffsetX=-0.285889, 
+    viewOffsetY=-0.111023)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.87547, 
+    farPlane=11.5764, width=4.38902, height=2.05156, viewOffsetX=-0.362715, 
+    viewOffsetY=-0.155341)
+a = mdb.models['eigen-web-panel'].rootAssembly
+a.regenerate()
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+a = mdb.models['eigen-web-panel'].rootAssembly
+a.regenerate()
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.97355, 
+    farPlane=14.3203, width=1.84702, height=0.863352, viewOffsetX=-1.70447, 
+    viewOffsetY=0.294695)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#4 ]', ), )
+a.Set(nodes=nodes1, name='Load-Main')
+#: The set 'Load-Main' has been created (1 node).
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#2 #0:3 #e0000000 #ffffffff:2 #7f ]', 
+    ), )
+a.Set(nodes=nodes1, name='Load-Follower')
+#: The set 'Load-Follower' has been created (75 nodes).
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+mdb.Model(name='riks-web-panel', objectToCopy=mdb.models['eigen-web-panel'])
+#: The model "riks-web-panel" has been created.
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.40115, 
+    farPlane=11.0809, width=8.35003, height=3.90306, viewOffsetX=-0.0059145, 
+    viewOffsetY=0.0725528)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    adaptiveMeshConstraints=ON)
+mdb.models['riks-web-panel'].StaticRiksStep(name='buckle', previous='Initial', 
+    maintainAttributes=True, maxNumInc=500, initialArcInc=0.001, 
+    minArcInc=0.0007, maxArcInc=1e+36, totalArcLength=70.0)
+mdb.models['riks-web-panel'].steps.changeKey(fromName='buckle', toName='riks')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0231, 
+    farPlane=14.2707, width=1.2037, height=0.562645, viewOffsetX=-1.56829, 
+    viewOffsetY=0.242363)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:23 #100000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].ConcentratedForce(name='Load-1', 
+    createStepName='buckle', region=region, cf1=1000000.0, 
+    distributionType=UNIFORM, field='', localCsys=None)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.89409, 
+    farPlane=14.3997, width=3.25041, height=1.51934, viewOffsetX=-0.0264546, 
+    viewOffsetY=0.493724)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=(
+    '[#3f #0:3 #e0000000 #ffffffff:18 #7fff ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].DisplacementBC(name='Edge', 
+    createStepName='buckle', region=region, u1=UNSET, u2=UNSET, u3=0.0, 
+    ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET, 
+    buckleCase=PERTURBATION_AND_BUCKLING, fixed=OFF, distributionType=UNIFORM, 
+    fieldName='', localCsys=None)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0421, 
+    farPlane=14.2517, width=0.957071, height=0.447364, viewOffsetX=-0.346323, 
+    viewOffsetY=0.432134)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:2 #40000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].DisplacementBC(name='Centre', 
+    createStepName='buckle', region=region, u1=UNSET, u2=0.0, u3=UNSET, 
+    ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET, 
+    buckleCase=PERTURBATION_AND_BUCKLING, fixed=OFF, distributionType=UNIFORM, 
+    fieldName='', localCsys=None)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0529, 
+    farPlane=14.2409, width=0.815993, height=0.38142, viewOffsetX=-1.05897, 
+    viewOffsetY=0.26222)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#2 ]', ), )
+a.Set(nodes=nodes1, name='Web-Main')
+#: The set 'Web-Main' has been created (1 node).
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0687, 
+    farPlane=14.2252, width=0.612166, height=0.286145, viewOffsetX=0.286704, 
+    viewOffsetY=0.697157)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#c1 #0:22 #1ff8000 ]', ), )
+a.Set(nodes=nodes1, name='Web-Follower')
+#: The set 'Web-Follower' has been created (13 nodes).
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.86731, 
+    farPlane=14.4265, width=3.22822, height=1.50897, viewOffsetX=-0.0902516, 
+    viewOffsetY=0.725937)
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+del mdb.models['riks-web-panel']
+a = mdb.models['eigen-plate'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, interactions=ON, constraints=ON, 
+    engineeringFeatures=ON)
+mdb.models['eigen-web-panel'].Equation(name='End', terms=((1.0, 
+    'Load-Follower', 1), (-1.0, 'Load-Main', 1)))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.66271, 
+    farPlane=14.6311, width=5.89329, height=2.7547, viewOffsetX=0.372794, 
+    viewOffsetY=1.01924)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=(
+    '[#22 #0:3 #e0000000 #ffffffff:2 #7f #0:13 #ffffffe0', 
+    ' #ffffffff #7fff ]', ), )
+a.Set(nodes=nodes1, name='Load-Follower')
+#: The set 'Load-Follower' has been edited (150 nodes).
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+mdb.models['eigen-web-panel'].Equation(name='Web', terms=((1.0, 'Web-Follower', 
+    2), (-1.0, 'Web-Main', 2)))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.73643, 
+    farPlane=14.5574, width=4.93222, height=2.30547, viewOffsetX=0.186393, 
+    viewOffsetY=0.901304)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0806, 
+    farPlane=14.2132, width=0.45721, height=0.213714, viewOffsetX=-0.499732, 
+    viewOffsetY=0.795525)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#8 ]', ), )
+a.Set(nodes=nodes1, name='Fixed-Main')
+#: The set 'Fixed-Main' has been created (1 node).
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#1 #0:10 #f0000000 #ffffffff:2 #3f ]', 
+    ), )
+a.Set(nodes=nodes1, name='Fixed-Follower')
+#: The set 'Fixed-Follower' has been created (75 nodes).
+mdb.models['eigen-web-panel'].Equation(name='Fixed', terms=((1.0, 
+    'Fixed-Follower', 1), (-1.0, 'Fixed-Main', 1)))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.69677, 
+    farPlane=14.597, width=6.13542, height=2.86788, viewOffsetX=0.392247, 
+    viewOffsetY=0.919303)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, interactions=OFF, constraints=OFF, 
+    engineeringFeatures=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+session.viewports['Viewport: 1'].view.setValues(nearPlane=10.0691, 
+    farPlane=14.2247, width=0.606827, height=0.283649, viewOffsetX=0.320131, 
+    viewOffsetY=0.693431)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:23 #80000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].DisplacementBC(name='Fixed', 
+    createStepName='buckle', region=region, u1=0.0, u2=UNSET, u3=UNSET, 
+    ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET, 
+    buckleCase=PERTURBATION_AND_BUCKLING, fixed=OFF, distributionType=UNIFORM, 
+    fieldName='', localCsys=None)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.7455, 
+    farPlane=14.5483, width=4.81401, height=2.25021, viewOffsetX=-0.0301447, 
+    viewOffsetY=0.781909)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(width=4.53511, height=2.11985, 
+    viewOffsetX=-0.0463276, viewOffsetY=0.59399)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF, adaptiveMeshConstraints=ON)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    adaptiveMeshConstraints=OFF)
+del mdb.jobs['SP1-T2-e']
+del mdb.jobs['SP1-T2-r']
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+mdb.Job(name='eigen-web-panel', model='eigen-web-panel', description='', 
+    type=ANALYSIS, atTime=None, waitMinutes=0, waitHours=0, queue=None, 
+    memory=90, memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True, 
+    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF, 
+    modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='', 
+    scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=4, 
+    numDomains=4, numGPUs=4)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=9.7455, 
+    farPlane=14.5483, width=4.81401, height=2.25021, viewOffsetX=-0.103693, 
+    viewOffsetY=0.555348)
+mdb.jobs['eigen-web-panel'].submit(consistencyChecking=OFF)
+#: Abaqus Warning: The following input options are not supported by parallel execution of element operations: buckle. Only the solver will be executed in parallel for this analysis.
+#: The job input file "eigen-web-panel.inp" has been submitted for analysis.
+#: Job eigen-web-panel: Analysis Input File Processor completed successfully.
+mdb.Model(name='riks-web-panel', objectToCopy=mdb.models['eigen-web-panel'])
+#: The model "riks-web-panel" has been created.
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    adaptiveMeshConstraints=ON)
+#: Error in job eigen-web-panel: INCREASE THE NUMBER OF ITERATIONS TO GET THE REQUESTED NUMBER OF EIGENVALUES
+#: Job eigen-web-panel: Abaqus/Standard aborted due to errors.
+#: Error in job eigen-web-panel: Abaqus/Standard Analysis exited with an error - Please see the  message file for possible error messages if the file exists.
+#: Job eigen-web-panel aborted due to errors.
+mdb.models['riks-web-panel'].StaticRiksStep(name='buckle', previous='Initial', 
+    maintainAttributes=True, maxNumInc=500, initialArcInc=0.001, 
+    minArcInc=0.0007, maxArcInc=1e+36, totalArcLength=70.0)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF, adaptiveMeshConstraints=ON)
+mdb.models['riks-web-panel'].steps.changeKey(fromName='buckle', toName='riks')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='riks')
+mdb.models['riks-web-panel'].steps['riks'].setValues(nlgeom=ON)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='buckle')
+mdb.models['eigen-web-panel'].steps['buckle'].setValues(maxIterations=300)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    adaptiveMeshConstraints=OFF)
+mdb.jobs['eigen-web-panel'].submit(consistencyChecking=OFF)
+#: Abaqus Warning: The following input options are not supported by parallel execution of element operations: buckle. Only the solver will be executed in parallel for this analysis.
+#: The job input file "eigen-web-panel.inp" has been submitted for analysis.
+#: Job eigen-web-panel: Analysis Input File Processor completed successfully.
+#: Job eigen-web-panel: Abaqus/Standard completed successfully.
+#: Job eigen-web-panel completed successfully. 
+session.viewports['Viewport: 1'].setValues(
+    displayedObject=session.odbs['C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/SP1-UC1-e.odb'])
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       1
+#: Number of Node Sets:          7
+#: Number of Steps:              1
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.49546, 
+    farPlane=10.9866, width=6.2184, height=2.90667, viewOffsetX=0.0650186, 
+    viewOffsetY=0.00600505)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.73112, 
+    farPlane=10.9043, width=6.44401, height=3.01213, cameraPosition=(8.16023, 
+    -1.35294, 3.11881), cameraUpVector=(-0.218357, 0.974726, 0.0472077), 
+    cameraTarget=(0.103344, -0.0177003, 0.00285925), viewOffsetX=0.0673775, 
+    viewOffsetY=0.00622292)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.86409, 
+    farPlane=10.5803, width=6.57131, height=3.07163, cameraPosition=(4.77633, 
+    -3.12471, 6.65845), cameraUpVector=(-0.155437, 0.979639, 0.127072), 
+    cameraTarget=(0.0339112, -0.0387114, -0.00424962), viewOffsetX=0.0687085, 
+    viewOffsetY=0.00634585)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.93083, 
+    farPlane=10.445, width=6.63521, height=3.1015, cameraPosition=(1.76858, 
+    -5.45837, 6.58661), cameraUpVector=(0.154417, 0.942734, 0.295647), 
+    cameraTarget=(0.0289284, -0.00981557, -0.0234098), viewOffsetX=0.0693766, 
+    viewOffsetY=0.00640755)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.5921, 
+    farPlane=10.709, width=6.31093, height=2.94992, cameraPosition=(-2.13595, 
+    -6.75982, 5.02021), cameraUpVector=(0.413055, 0.715087, 0.563947), 
+    cameraTarget=(0.0561387, 0.0304211, -0.0288332), viewOffsetX=0.065986, 
+    viewOffsetY=0.0060944)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20706, 
+    farPlane=11.0256, width=5.94231, height=2.77761, cameraPosition=(-4.93158, 
+    -6.14891, 3.54319), cameraUpVector=(0.471296, 0.504221, 0.72363), 
+    cameraTarget=(0.0981005, 0.0468659, -0.0233287), viewOffsetX=0.0621318, 
+    viewOffsetY=0.00573843)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.22181, 
+    farPlane=11.0214, width=5.95643, height=2.78421, cameraPosition=(-4.79054, 
+    -6.40298, 3.28563), cameraUpVector=(0.452791, 0.490158, 0.744799), 
+    cameraTarget=(0.0946539, 0.048771, -0.0181811), viewOffsetX=0.0622794, 
+    viewOffsetY=0.00575207)
+session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.36502, 
+    farPlane=10.7236, width=6.09353, height=2.8483, cameraPosition=(-8.37403, 
+    -1.45475, 0.899957), cameraUpVector=(0.395, 0.229271, 0.889612), 
+    cameraTarget=(0.194303, 0.0163017, -0.00839988), viewOffsetX=0.0637129, 
+    viewOffsetY=0.00588446)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.33924, 
+    farPlane=10.7586, width=6.06885, height=2.83676, cameraPosition=(-7.56681, 
+    -1.91936, 3.52267), cameraUpVector=(0.612158, 0.363591, 0.702185), 
+    cameraTarget=(0.161342, 0.0222309, -0.0705782), viewOffsetX=0.0634548, 
+    viewOffsetY=0.00586063)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.08107, 
+    farPlane=11.102, width=5.82169, height=2.72123, cameraPosition=(-6.02127, 
+    -5.31227, 3.09411), cameraUpVector=(0.471697, 0.447372, 0.759843), 
+    cameraTarget=(0.0971943, 0.0830032, -0.0461218), viewOffsetX=0.0608705, 
+    viewOffsetY=0.00562195)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.3001, 
+    farPlane=10.883, width=2.87045, height=1.34174, viewOffsetX=-0.385062, 
+    viewOffsetY=-0.153709)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.42364, 
+    farPlane=10.9687, width=2.92674, height=1.36805, cameraPosition=(-7.0964, 
+    -4.48684, 2.30235), cameraUpVector=(0.472362, 0.323971, 0.819706), 
+    cameraTarget=(0.0375433, -0.00436821, -0.0257118), viewOffsetX=-0.392613, 
+    viewOffsetY=-0.156723)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.34576, 
+    farPlane=11.0466, width=3.71834, height=1.73807, viewOffsetX=-0.237563, 
+    viewOffsetY=-0.0673448)
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=0 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=1 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=2 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=3 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=4 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=5 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=5 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=4 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=3 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=2 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=1 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=0 )
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=1 )
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.81276, 
+    farPlane=11.0387, width=3.99199, height=1.86598, cameraPosition=(-8.63411, 
+    2.0714, 0.944619), cameraUpVector=(0.464529, 0.0982328, 0.880093), 
+    cameraTarget=(-0.207348, -0.0707377, 0.0465526), viewOffsetX=-0.255046, 
+    viewOffsetY=-0.0723009)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.42546, 
+    farPlane=11.2102, width=3.76505, height=1.7599, cameraPosition=(-7.12201, 
+    -5.11374, -0.905321), cameraUpVector=(0.142781, 0.21204, 0.966774), 
+    cameraTarget=(0.0498366, -0.19402, -0.0297441), viewOffsetX=-0.240547, 
+    viewOffsetY=-0.0681906)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.35281, 
+    farPlane=11.153, width=3.72248, height=1.74, cameraPosition=(-5.46841, 
+    -6.82303, 0.47907), cameraUpVector=(0.271642, 0.281981, 0.920162), 
+    cameraTarget=(0.151111, -0.149377, -0.0585258), viewOffsetX=-0.237827, 
+    viewOffsetY=-0.0674196)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.35682, 
+    farPlane=11.037, width=3.72483, height=1.7411, cameraPosition=(-4.81764, 
+    -6.68521, 2.82949), cameraUpVector=(0.429355, 0.460792, 0.77674), 
+    cameraTarget=(0.175472, -0.123522, -0.0720259), viewOffsetX=-0.237977, 
+    viewOffsetY=-0.0674622)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.71927, 
+    farPlane=10.9481, width=3.93721, height=1.84037, cameraPosition=(-8.41814, 
+    -2.4393, -1.09288), cameraUpVector=(0.269734, -0.140981, 0.952559), 
+    cameraTarget=(-0.00347795, -0.29188, -0.0990319), viewOffsetX=-0.251546, 
+    viewOffsetY=-0.0713087)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.78936, 
+    farPlane=10.8042, width=3.97828, height=1.85957, cameraPosition=(-8.32503, 
+    1.09382, 2.67238), cameraUpVector=(0.602542, -0.0514392, 0.796428), 
+    cameraTarget=(-0.10368, -0.248642, 0.0241941), viewOffsetX=-0.25417, 
+    viewOffsetY=-0.0720526)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.92055, 
+    farPlane=10.6907, width=4.05515, height=1.8955, cameraPosition=(-8.68768, 
+    -0.694927, 1.31442), cameraUpVector=(0.470179, 0.0255623, 0.882201), 
+    cameraTarget=(-0.0562006, -0.262527, 0.00436893), viewOffsetX=-0.259081, 
+    viewOffsetY=-0.0734449)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.60291, 
+    farPlane=9.76842, width=4.45498, height=2.08239, cameraPosition=(-1.87285, 
+    0.945632, 8.47284), cameraUpVector=(0.987913, 0.08756, -0.127909), 
+    cameraTarget=(0.0886048, -0.2325, 0.0365875), viewOffsetX=-0.284626, 
+    viewOffsetY=-0.0806865)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.80463, 
+    farPlane=9.55007, width=4.57318, height=2.13764, cameraPosition=(-0.36218, 
+    1.03752, 8.65211), cameraUpVector=(0.954539, 0.04162, -0.295167), 
+    cameraTarget=(0.0753221, -0.238476, 0.0157901), viewOffsetX=-0.292178, 
+    viewOffsetY=-0.0828273)
+session.viewports['Viewport: 1'].view.setValues(width=4.60674, height=2.15333, 
+    cameraPosition=(-0.0484851, 0.0818625, 8.70399), cameraUpVector=(0, 1, 0), 
+    cameraTarget=(-0.0484851, 0.0818625, 0.0266405), viewOffsetX=0, 
+    viewOffsetY=0)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.91067, 
+    farPlane=9.41477, width=7.26746, height=3.39703, viewOffsetX=0.168175, 
+    viewOffsetY=-0.00566781)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.87945, 
+    farPlane=9.44599, width=7.23878, height=3.38363, viewOffsetX=0.809817, 
+    viewOffsetY=-0.294844)
+session.viewports['Viewport: 1'].view.setValues(width=7.7007, height=3.59954, 
+    viewOffsetX=0.83809, viewOffsetY=-0.326527)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.84582, 
+    farPlane=9.47962, width=7.66797, height=3.58424, viewOffsetX=1.4877, 
+    viewOffsetY=-0.379601)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.88155, 
+    farPlane=9.44388, width=7.70289, height=3.60056, viewOffsetX=1.5952, 
+    viewOffsetY=-0.243741)
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+mdb.jobs['eigen-web-panel'].setValues(nodalOutputPrecision=FULL)
+mdb.jobs['eigen-web-panel'].submit(consistencyChecking=OFF)
+#: Abaqus Warning: The following input options are not supported by parallel execution of element operations: buckle. Only the solver will be executed in parallel for this analysis.
+#: The job input file "eigen-web-panel.inp" has been submitted for analysis.
+#: Job eigen-web-panel: Analysis Input File Processor completed successfully.
+#: Job eigen-web-panel: Abaqus/Standard completed successfully.
+#: Job eigen-web-panel completed successfully. 
+session.viewports['Viewport: 1'].view.setValues(nearPlane=4.36297, 
+    farPlane=13.0889, width=2.21523, height=0.716475, cameraPosition=(-6.63976, 
+    -5.11315, 2.49764), cameraTarget=(-0.058949, 0.01475, -0.0596206), 
+    viewOffsetX=0, viewOffsetY=0)
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       1
+#: Number of Node Sets:          7
+#: Number of Steps:              1
+session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.4371, 
+    farPlane=9.98952, width=7.11988, height=3.32805, cameraPosition=(2.37316, 
+    0.938883, 8.37334), cameraUpVector=(-0.0773163, 0.90024, -0.428475), 
+    cameraTarget=(0.074907, -0.0104013, -0.00653456))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.39891, 
+    farPlane=9.96259, width=7.08332, height=3.31096, cameraPosition=(-1.35388, 
+    -1.55904, 8.47295), cameraUpVector=(0.251899, 0.959693, -0.124642), 
+    cameraTarget=(0.086759, -0.00245791, -0.00685127))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.42391, 
+    farPlane=10.894, width=6.14991, height=2.87466, cameraPosition=(-4.09773, 
+    -4.76959, 5.99343), cameraUpVector=(0.335018, 0.842158, 0.422531), 
+    cameraTarget=(0.105809, 0.0198324, 0.0103636))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.28184, 
+    farPlane=11.0486, width=6.0139, height=2.81108, cameraPosition=(-3.20091, 
+    -7.38996, 3.23858), cameraUpVector=(0.125065, 0.65673, 0.743683), 
+    cameraTarget=(0.0973096, 0.0446666, 0.0364722))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.38533, 
+    farPlane=10.9437, width=6.11297, height=2.85739, cameraPosition=(-3.52672, 
+    -6.22789, 4.92414), cameraUpVector=(0.453208, 0.666326, 0.592125), 
+    cameraTarget=(0.10016, 0.0345014, 0.0217278))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20598, 
+    farPlane=11.083, width=5.94127, height=2.77713, cameraPosition=(-5.53855, 
+    -5.22912, 4.12715), cameraUpVector=(0.648621, 0.373502, 0.663164), 
+    cameraTarget=(0.117924, 0.0256824, 0.0287651))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.08913, 
+    farPlane=11.1812, width=5.82941, height=2.72484, cameraPosition=(-5.4701, 
+    -6.68015, 0.120311), cameraUpVector=(0.215995, 0.260473, 0.94101), 
+    cameraTarget=(0.11716, 0.0418853, 0.0735072))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.12903, 
+    farPlane=11.163, width=5.86761, height=2.74269, cameraPosition=(-5.06171, 
+    -6.55382, 2.5247), cameraUpVector=(0.31772, 0.496468, 0.80782), 
+    cameraTarget=(0.112154, 0.0403366, 0.044033))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20707, 
+    farPlane=11.1007, width=5.94232, height=2.77761, cameraPosition=(-4.35515, 
+    -6.69509, 3.37107), cameraUpVector=(0.421318, 0.521166, 0.742211), 
+    cameraTarget=(0.10439, 0.0418889, 0.0347326))
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, connectors=ON)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.42784, 
+    farPlane=11.024, width=3.47195, height=1.6229, viewOffsetX=0.0549392, 
+    viewOffsetY=0.0333893)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:175 #8 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].boundaryConditions['Centre'].setValues(
+    region=region, buckleCase=PERTURBATION_AND_BUCKLING)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF)
+mdb.jobs['eigen-web-panel'].setValues(nodalOutputPrecision=SINGLE)
+mdb.jobs['eigen-web-panel'].submit(consistencyChecking=OFF)
+#: Abaqus Warning: The following input options are not supported by parallel execution of element operations: buckle. Only the solver will be executed in parallel for this analysis.
+#: The job input file "eigen-web-panel.inp" has been submitted for analysis.
+#: Job eigen-web-panel: Analysis Input File Processor completed successfully.
+#: Job eigen-web-panel: Abaqus/Standard completed successfully.
+#: Job eigen-web-panel completed successfully. 
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       1
+#: Number of Node Sets:          7
+#: Number of Steps:              1
+session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.05859, 
+    farPlane=10.423, width=6.75752, height=3.15867, cameraPosition=(4.85907, 
+    1.01338, 7.23768), cameraUpVector=(-0.220297, 0.89689, -0.383481), 
+    cameraTarget=(0.0781079, -0.0103096, -0.00799466))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.44471, 
+    farPlane=9.98566, width=7.12717, height=3.33146, cameraPosition=(2.43019, 
+    -0.757009, 8.37742), cameraUpVector=(-0.000768937, 0.965259, -0.261294), 
+    cameraTarget=(0.0781688, -0.0102652, -0.0080233))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.19719, 
+    farPlane=10.1989, width=6.89021, height=3.2207, cameraPosition=(-0.0953628, 
+    -4.23572, 7.63817), cameraUpVector=(0.298846, 0.94271, 0.148288), 
+    cameraTarget=(0.0856532, 4.38057e-05, -0.00583259))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.59278, 
+    farPlane=10.7534, width=6.31158, height=2.95023, cameraPosition=(-3.02239, 
+    -4.96313, 6.47959), cameraUpVector=(0.45242, 0.804437, 0.384964), 
+    cameraTarget=(0.100111, 0.00363683, -0.000109803))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20566, 
+    farPlane=11.0983, width=5.94097, height=2.777, cameraPosition=(-5.39347, 
+    -5.34136, 4.19163), cameraUpVector=(0.45054, 0.59788, 0.662989), 
+    cameraTarget=(0.11868, 0.00659893, 0.017808))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.10188, 
+    farPlane=11.2071, width=5.84162, height=2.73056, cameraPosition=(-5.21408, 
+    -6.84102, 0.991519), cameraUpVector=(0.224981, 0.373172, 0.90007), 
+    cameraTarget=(0.116834, 0.0220306, 0.0507375))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.1609, 
+    farPlane=11.166, width=5.89813, height=2.75697, cameraPosition=(-4.49888, 
+    -7.13074, 2.03101), cameraUpVector=(0.352839, 0.413452, 0.839382), 
+    cameraTarget=(0.109684, 0.0249269, 0.040346))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.15773, 
+    farPlane=11.1663, width=5.89509, height=2.75555, cameraPosition=(-4.65676, 
+    -6.87917, 2.49328), cameraUpVector=(0.43827, 0.405055, 0.802403), 
+    cameraTarget=(0.111097, 0.0226749, 0.0362078))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20739, 
+    farPlane=11.1065, width=5.94263, height=2.77777, cameraPosition=(-5.08029, 
+    -5.91444, 3.80179), cameraUpVector=(0.595102, 0.41029, 0.691025), 
+    cameraTarget=(0.114959, 0.0138776, 0.0242757))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.07646, 
+    farPlane=11.2037, width=5.81728, height=2.71918, cameraPosition=(-6.42585, 
+    -5.64043, 1.27796), cameraUpVector=(0.366066, 0.283793, 0.88626), 
+    cameraTarget=(0.128025, 0.0112168, 0.0487828))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.0884, 
+    farPlane=11.2048, width=5.82871, height=2.72452, cameraPosition=(-5.84436, 
+    -6.32479, 0.809612), cameraUpVector=(0.332254, 0.254967, 0.908075), 
+    cameraTarget=(0.121232, 0.0192113, 0.0542539))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.27483, 
+    farPlane=11.0401, width=6.00719, height=2.80795, cameraPosition=(-4.90366, 
+    -5.6262, 4.42772), cameraUpVector=(0.459398, 0.612049, 0.6437), 
+    cameraTarget=(0.110961, 0.0115838, 0.0147502))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.58108, 
+    farPlane=10.7529, width=6.30038, height=2.94499, cameraPosition=(-3.52582, 
+    -4.90388, 6.25668), cameraUpVector=(0.552642, 0.720288, 0.419252), 
+    cameraTarget=(0.0976641, 0.00461303, -0.00290043))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.42738, 
+    farPlane=10.9461, width=6.15323, height=2.87621, cameraPosition=(-2.10805, 
+    -7.67512, 3.52061), cameraUpVector=(0.219289, 0.647427, 0.729898), 
+    cameraTarget=(0.0855553, 0.0282811, 0.0204674))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.59264, 
+    farPlane=10.7735, width=6.31144, height=2.95016, cameraPosition=(-2.20306, 
+    -6.30722, 5.58738), cameraUpVector=(0.307494, 0.801532, 0.512829), 
+    cameraTarget=(0.0861489, 0.0197349, 0.00755501))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.72397, 
+    farPlane=10.6388, width=6.43716, height=3.00893, cameraPosition=(-2.155, 
+    -5.35753, 6.52336), cameraUpVector=(0.380759, 0.84355, 0.378743), 
+    cameraTarget=(0.0858282, 0.0133977, 0.00130925))
+a = mdb.models['eigen-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, connectors=ON)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.61975, 
+    farPlane=10.8321, width=0.975069, height=0.455777, viewOffsetX=0.510158, 
+    viewOffsetY=0.217985)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=(
+    '[#11 #0:13 #ffffffc0 #ffffffff #ffff #0:6 #80000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].boundaryConditions['Fixed'].setValues(
+    region=region, buckleCase=PERTURBATION_AND_BUCKLING)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, interactions=ON, constraints=ON, 
+    engineeringFeatures=ON)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.39198, 
+    farPlane=11.0599, width=3.93945, height=1.84142, viewOffsetX=-0.0154871, 
+    viewOffsetY=0.453239)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=(
+    '[#11 #0:10 #f0000000 #ffffffff:4 #ffff ]', ), )
+a.Set(nodes=nodes1, name='Fixed-Follower')
+#: The set 'Fixed-Follower' has been edited (150 nodes).
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, interactions=OFF, constraints=OFF, 
+    engineeringFeatures=OFF)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.65386, 
+    farPlane=10.798, width=0.532221, height=0.248776, viewOffsetX=0.594197, 
+    viewOffsetY=0.320722)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:23 #80000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].boundaryConditions['Fixed'].setValues(
+    region=region, buckleCase=PERTURBATION_AND_BUCKLING)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.63651, 
+    farPlane=10.8154, width=0.757398, height=0.354031, viewOffsetX=0.0445383, 
+    viewOffsetY=0.145892)
+a = mdb.models['eigen-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=('[#0:2 #40000 ]', ), )
+region = regionToolset.Region(nodes=nodes1)
+mdb.models['eigen-web-panel'].boundaryConditions['Centre'].setValues(
+    region=region, buckleCase=PERTURBATION_AND_BUCKLING)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.36971, 
+    farPlane=11.0822, width=4.22995, height=1.97721, viewOffsetX=0.257644, 
+    viewOffsetY=0.442111)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF)
+mdb.jobs['eigen-web-panel'].submit(consistencyChecking=OFF)
+#: Abaqus Warning: The following input options are not supported by parallel execution of element operations: buckle. Only the solver will be executed in parallel for this analysis.
+#: The job input file "eigen-web-panel.inp" has been submitted for analysis.
+#: Job eigen-web-panel: Analysis Input File Processor completed successfully.
+#: Job eigen-web-panel: Abaqus/Standard completed successfully.
+#: Job eigen-web-panel completed successfully. 
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       1
+#: Number of Node Sets:          7
+#: Number of Steps:              1
+session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.92007, 
+    farPlane=10.6687, width=6.6249, height=3.09668, cameraPosition=(5.75547, 
+    -1.22977, 6.53513), cameraUpVector=(-0.163215, 0.978704, -0.124497), 
+    cameraTarget=(0.0810423, -0.0309004, -0.00466834))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.41644, 
+    farPlane=10.1203, width=7.1001, height=3.3188, cameraPosition=(2.75868, 
+    -0.755634, 8.289), cameraUpVector=(-0.212199, 0.956823, -0.198651), 
+    cameraTarget=(0.0628566, -0.0280232, 0.00597472))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.70027, 
+    farPlane=10.8874, width=6.41447, height=2.99832, cameraPosition=(5.25716, 
+    -2.75068, 6.49086), cameraUpVector=(-0.0842663, 0.995821, 0.0351977), 
+    cameraTarget=(0.0706504, -0.0342465, 0.000365606))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.29911, 
+    farPlane=10.2475, width=6.98777, height=3.2663, cameraPosition=(2.90342, 
+    -1.4319, 8.15437), cameraUpVector=(-0.0198924, 0.983261, -0.181116), 
+    cameraTarget=(0.0565137, -0.0263258, 0.0103565))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.62822, 
+    farPlane=9.8991, width=7.30284, height=3.41357, cameraPosition=(1.79361, 
+    -0.233174, 8.57515), cameraUpVector=(-0.0706593, 0.950547, -0.302438), 
+    cameraTarget=(0.05243, -0.0219149, 0.0119048))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.9545, 
+    farPlane=10.6208, width=6.65786, height=3.11208, cameraPosition=(5.53951, 
+    -0.799397, 6.77492), cameraUpVector=(-0.0805861, 0.963626, -0.254814), 
+    cameraTarget=(0.0621051, -0.0233774, 0.0072551))
+session.viewports['Viewport: 1'].view.setValues(cameraPosition=(0.0621051, 
+    -0.0233774, 8.74828), cameraUpVector=(0, 1, 0))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.86048, 
+    farPlane=9.63608, width=8.51652, height=3.98088, viewOffsetX=0.0263883, 
+    viewOffsetY=0.0314637)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.83329, 
+    farPlane=9.66327, width=8.48706, height=3.96711, viewOffsetX=1.58891, 
+    viewOffsetY=-0.545063)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.87003, 
+    farPlane=9.62652, width=7.53435, height=3.52178, viewOffsetX=1.34778, 
+    viewOffsetY=-0.436998)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.90217, 
+    farPlane=9.59439, width=7.56511, height=3.53616, viewOffsetX=1.31637, 
+    viewOffsetY=-0.297739)
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(interactions=ON, 
+    constraints=ON, connectors=ON, engineeringFeatures=ON)
+a = mdb.models['riks-web-panel'].rootAssembly
+n1 = a.instances['panel-1'].nodes
+nodes1 = n1.getSequenceFromMask(mask=(
+    '[#11 #0:10 #f0000000 #ffffffff:4 #ffff ]', ), )
+a.Set(nodes=nodes1, name='Fixed-Follower')
+#: The set 'Fixed-Follower' has been edited (150 nodes).
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.19818, 
+    farPlane=10.277, width=6.89115, height=3.22113, cameraPosition=(5.84361, 
+    0.144767, 6.55772), cameraUpVector=(-0.27704, 0.934919, -0.221757), 
+    cameraTarget=(0.0784505, -0.00511744, -0.0108326))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.9541, 
+    farPlane=10.4615, width=6.65748, height=3.11191, cameraPosition=(2.82504, 
+    -4.27004, 7.1068), cameraUpVector=(-0.0326654, 0.98099, 0.191287), 
+    cameraTarget=(0.0796349, -0.00338521, -0.0110481))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.80526, 
+    farPlane=10.6094, width=6.51499, height=3.04531, cameraPosition=(0.462734, 
+    -7.71881, 4.0668), cameraUpVector=(0.15568, 0.732953, 0.662226), 
+    cameraTarget=(0.0886459, 0.00977021, 0.000547956))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.26634, 
+    farPlane=11.0977, width=5.99905, height=2.80415, cameraPosition=(-3.25493, 
+    -7.88779, 1.66744), cameraUpVector=(0.467029, 0.341521, 0.815627), 
+    cameraTarget=(0.103027, 0.0104239, 0.00982936))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.36113, 
+    farPlane=10.9228, width=6.0898, height=2.84657, cameraPosition=(-4.88462, 
+    -5.5757, 4.50592), cameraUpVector=(0.684851, 0.401447, 0.608128), 
+    cameraTarget=(0.114101, -0.00528673, -0.00945801))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.20188, 
+    farPlane=11.0714, width=5.93734, height=2.7753, cameraPosition=(-5.95534, 
+    -5.4081, 3.20677), cameraUpVector=(0.517722, 0.403632, 0.754351), 
+    cameraTarget=(0.126373, -0.00720773, 0.00543229))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.24936, 
+    farPlane=11.034, width=5.98279, height=2.79655, cameraPosition=(-5.44162, 
+    -5.7261, 3.56788), cameraUpVector=(0.522445, 0.452016, 0.723003), 
+    cameraTarget=(0.120164, -0.00336439, 0.00106792))
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='riks')
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(interactions=OFF, 
+    constraints=OFF, connectors=OFF, engineeringFeatures=OFF, 
+    adaptiveMeshConstraints=ON)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON, 
+    predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.29253, 
+    farPlane=10.9908, width=5.6627, height=2.64692, viewOffsetX=-0.00316983, 
+    viewOffsetY=-0.00707844)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=OFF, bcs=OFF, 
+    predefinedFields=OFF, connectors=OFF)
+mdb.Job(name='riks-web-panel', model='riks-web-panel', description='', 
+    type=ANALYSIS, atTime=None, waitMinutes=0, waitHours=0, queue=None, 
+    memory=90, memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True, 
+    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF, 
+    modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='', 
+    scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=4, 
+    numDomains=4, numGPUs=4)
+mdb.jobs['riks-web-panel'].writeInput(consistencyChecking=OFF)
+#: The job input file has been written to "riks-web-panel.inp".
+session.viewports['Viewport: 1'].setValues(
+    displayedObject=session.odbs['C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/eigen-web-panel.odb'])
+o1 = session.openOdb(
+    name='C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/riks-web-panel.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+#: Model: C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/abaqus/riks-web-panel.odb
+#: Number of Assemblies:         1
+#: Number of Assembly instances: 0
+#: Number of Part instances:     1
+#: Number of Meshes:             1
+#: Number of Element Sets:       1
+#: Number of Node Sets:          7
+#: Number of Steps:              1
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.54284, 
+    farPlane=9.87175, width=7.22145, height=3.37553, cameraPosition=(3.72714, 
+    0.0174056, 7.93211), cameraUpVector=(-0.358638, 0.910764, -0.204666))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.47024, 
+    farPlane=10.971, width=6.19456, height=2.89553, cameraPosition=(2.93009, 
+    -7.03112, 4.30921), cameraUpVector=(-0.0237632, 0.782987, 0.621584), 
+    cameraTarget=(0.0815611, 0.0222879, 0.00297789))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.11758, 
+    farPlane=11.1877, width=5.85693, height=2.73771, cameraPosition=(-5.31469, 
+    -6.65268, 1.60164), cameraUpVector=(0.448064, 0.275871, 0.850373), 
+    cameraTarget=(0.101004, 0.0213952, 0.00936297))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.22282, 
+    farPlane=11.0626, width=5.95768, height=2.7848, cameraPosition=(-5.32631, 
+    -6.05178, 3.17796), cameraUpVector=(0.535934, 0.393039, 0.747191), 
+    cameraTarget=(0.101123, 0.0152458, -0.0067684))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.18301, 
+    farPlane=11.0927, width=5.91957, height=2.76698, cameraPosition=(-5.98698, 
+    -5.56397, 2.85799), cameraUpVector=(0.475228, 0.404211, 0.781519), 
+    cameraTarget=(0.108651, 0.0096876, -0.00312263))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.12481, 
+    farPlane=11.1596, width=5.86385, height=2.74094, cameraPosition=(-6.20536, 
+    -5.76708, 1.7732), cameraUpVector=(0.400836, 0.327168, 0.85574), 
+    cameraTarget=(0.111263, 0.0121173, 0.00985418))
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.1783, 
+    farPlane=11.0972, width=5.91506, height=2.76488, cameraPosition=(-6.09937, 
+    -5.52425, 2.68839), cameraUpVector=(0.430914, 0.428843, 0.793982), 
+    cameraTarget=(0.110049, 0.00933626, -0.000627047))
+session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=0 )
+session.viewports['Viewport: 1'].animationController.setValues(
+    animationType=TIME_HISTORY)
+session.viewports['Viewport: 1'].animationController.play(duration=UNLIMITED)
+session.viewports['Viewport: 1'].animationController.stop()
+a = mdb.models['riks-web-panel'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    adaptiveMeshConstraints=ON)
+mdb.models['riks-web-panel'].steps['riks'].setValues(maxNumInc=50)
+mdb.save()
+#: The model database has been saved to "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\abaqus\SP1-T2.cae".

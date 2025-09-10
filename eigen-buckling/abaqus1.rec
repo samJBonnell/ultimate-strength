@@ -1,0 +1,68 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from optimization import *
+from job import *
+from sketch import *
+from visualization import *
+mdb.Model(name='Model-1')
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='plate', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='web', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='flange', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].ConstrainedSketch(name='geometry', sheetSize=100.0)
+mdb.models['Model-1'].sketches['geometry'].rectangle(point1=(-1.5, 0), point2=(
+    1.5, 3.0))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(-0.9, 0.0), point2=(
+    -0.9, 0.125))
+mdb.models['Model-1'].sketches['geometry'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    -1.5, 1.5), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(-0.3, 0.0), point2=(
+    -0.3, 0.125))
+mdb.models['Model-1'].sketches['geometry'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    0.0, 3.0), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(0.3, 0.0), point2=(0.3, 
+    0.125))
+mdb.models['Model-1'].sketches['geometry'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    1.5, 1.5), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(0.9, 0.0), point2=(0.9, 
+    0.125))
+mdb.models['Model-1'].sketches['geometry'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    0.0, 0.0), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(-0.95, 0.125), point2=(
+    -0.85, 0.125))
+mdb.models['Model-1'].sketches['geometry'].HorizontalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    -1.5, 1.5), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(-0.35, 0.125), point2=(
+    -0.25, 0.125))
+mdb.models['Model-1'].sketches['geometry'].HorizontalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    0.0, 3.0), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(0.25, 0.125), point2=(
+    0.35, 0.125))
+mdb.models['Model-1'].sketches['geometry'].HorizontalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    1.5, 1.5), ))
+mdb.models['Model-1'].sketches['geometry'].Line(point1=(0.85, 0.125), point2=(
+    0.95, 0.125))
+mdb.models['Model-1'].sketches['geometry'].HorizontalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['geometry'].geometry.findAt((
+    0.0, 0.0), ))
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='plate', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].parts['plate'].BaseShell(sketch=
+    mdb.models['Model-1'].sketches['geometry'])
+#* Shell extrude feature failed
