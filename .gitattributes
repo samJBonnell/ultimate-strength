@@ -1,0 +1,23 @@
+# --- Source code (force LF for cross-platform consistency) ---
+*.py     text eol=lf
+*.sh     text eol=lf
+*.txt    text eol=lf
+*.csv    text eol=lf
+*.md     text eol=lf
+
+# --- Windows scripts ---
+*.bat    text eol=crlf
+
+# --- Abaqus input/control files (keep portable with LF) ---
+*.inp    text eol=lf
+*.rpy    text eol=lf
+*.msg    text eol=lf
+*.sta    text eol=lf
+*.jnl    text eol=lf
+*.rec    text eol=lf
+
+# --- Explicit binary safety (just in case) ---
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
