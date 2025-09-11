@@ -1090,13 +1090,17 @@ T_inv_web = np.array([
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Assignment
 
-assign_section_sets(part = p, section_name = "t-{}".format(panel.t_panel), set_name = 'PlateFace')
-assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_web), set_name = 'WebFaces')
-assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_flange), set_name = 'FlangeFaces')
+# assign_section_sets(part = p, section_name = "t-{}".format(panel.t_panel), set_name = 'PlateFace')
+# assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_web), set_name = 'WebFaces')
+# assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_flange), set_name = 'FlangeFaces')
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Create a mesh part!
-model.parts['plate'].PartFromMesh(name='panel', copySets=FALSE)
+p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
+
+assign_section_sets(part = p, section_name = "t-{}".format(panel.t_panel), set_name = 'PlateFace')
+assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_web), set_name = 'WebFaces')
+assign_section_sets(part = p, section_name = "t-{}".format(panel.t_longitudinal_flange), set_name = 'FlangeFaces')
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Find the node closest to the centroid of the face
@@ -1284,19 +1288,17 @@ for index, web_location in enumerate(web_locations):
 
 # # ----------------------------------------------------------------------------------------------------------------------------------
 
-# # Link the end of the panels together via Equations
+# Link the end of the panels together via Equations
 
-# fixed_point = np.array([[panel.length / 2], [0.0], [centroid]])
-# free_point = np.array([[-panel.length / 2], [0.0], [centroid]])
+free_point = np.array([[-panel.length / 2], [0.0], [centroid]])
 
-# _, centroid_labels_fixed = get_nodes_along_axis(assembly, reference_point=fixed_point, dof=2, instance_name='panel')
-# _, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='panel')
+_, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='panel')
 
-# #centroid_pairs_fixed = set((centroid_labels_fixed[i], centroid_labels_fixed[i+1]) for i in range(len(centroid_labels_fixed) - 1))
-# centroid_pairs_free = set((centroid_labels_free[i], centroid_labels_free[i+1]) for i in range(len(centroid_labels_free) - 1))
+assembly.Set(name = 'Load-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((centroid_labels_free[0],)))
+assembly.Set(name = 'Load-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(centroid_labels_free[1:]))
 
-# #equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_fixed, linked_dof=[1])
-# equation_constraint(model, assembly, parent_part_name='panel', child_part_name='panel', nodes_to_link=centroid_pairs_free, linked_dof=[1])
+equation_sets(model, 'Load', 'Load-Main', 'Load-Follower', linked_dof= [1])
+
 
 # # Link via constraints instead?
 # # ----------------------------------------------------------------------------------------------------------------------------------
