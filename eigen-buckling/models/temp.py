@@ -52,116 +52,7 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Dataclass Definitions
-
-class Struct(object):
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.__dict__)
-
-def from_dict(d):
-    if isinstance(d, dict):
-        return Struct(**{k: from_dict(v) for k, v in d.items()})
-    elif isinstance(d, list):
-        return [from_dict(i) for i in d]
-    else:
-        return d
-    
-class ThicknessGroup(object):
-    def __init__(self, panel, longitudinal_web, longitudinal_flange):
-        self.panel = panel
-        self.longitudinal_web = longitudinal_web
-        self.longitudinal_flange = longitudinal_flange
-
-    def unique(self):
-        """Return unique thicknesses in the order they first appear."""
-        seen = set()
-        ordered = []
-        for t in [self.panel, self.longitudinal_web, self.longitudinal_flange]:
-            if t not in seen:
-                seen.add(t)
-                ordered.append(t)
-        return ordered
-
-    def __repr__(self):
-        return "ThicknessGroup({})".format(self.__dict__)
-    
-class ElementStress(object):
-    def __init__(self, element_id, stress):
-        self.element_id = element_id
-        self.stress = stress
-
-    @staticmethod
-    def from_dict(d):
-        return ElementStress(d["element_id"], d["stress"])
-
-    def to_dict(self):
-        return {"element_id": self.element_id, "stress": self.stress}
-
-class ElementDisplacement(object):
-    def __init__(self, element_id, x, y, z):
-        self.element_id = element_id
-        self.x = x
-        self.y = y
-        self.z = z
-
-    @staticmethod
-    def from_dict(d):
-        return ElementDisplacement(d["element_id"], d["x"], d["y"], d["z"])
-
-    def to_dict(self):
-        return {
-            "element_id": self.element_id,
-            "x": self.x,
-            "y": self.y,
-            "z": self.z
-        }
-    
-class PanelOutput(object):
-    def __init__(self, id, element_counts, stress_field, displacement_field, job_name, steps):
-        self.id = id
-        self.element_counts = element_counts                  # Dict[str, int]
-        self.stress_field = stress_field                      # Dict[str, List[ElementStress]]
-        self.displacement_field = displacement_field          # Dict[str, List[ElementDisplacement]]
-        self.job_name = job_name
-        self.steps = steps                                    # List of step names (str)
-
-    @staticmethod
-    def from_dict(d):
-        stress_field = {}
-        for step, stresses in d.get("stress_field", {}).items():
-            stress_field[step] = [ElementStress.from_dict(s) for s in stresses]
-
-        displacement_field = {}
-        for step, disps in d.get("displacement_field", {}).items():
-            displacement_field[step] = [ElementDisplacement.from_dict(s) for s in disps]
-
-        return PanelOutput(
-            id=d["id"],
-            element_counts=d["element_counts"],
-            stress_field=stress_field,
-            displacement_field=displacement_field,
-            job_name=d["job_name"],
-            steps=d["steps"]
-        )
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "element_counts": self.element_counts,
-            "stress_field": {
-                step: [s.to_dict() for s in stresses]
-                for step, stresses in self.stress_field.items()
-            },
-            "displacement_field": {
-                step: [d.to_dict() for d in disps]
-                for step, disps in self.displacement_field.items()
-            },
-            "job_name": self.job_name,
-            "steps": self.steps
-        }
-
+from utils.IO_utils import *
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Function Definitions
@@ -472,6 +363,50 @@ def find_closest_node(container, reference_point, instance_name=None, min_dist=1
     Returns
     -------
     Closest Abaqus Node item to target_point
+    """
+
+    # Extract nodes
+    if hasattr(container, "instances") and instance_name is not None:
+        nodes = container.instances[instance_name].nodes
+    elif hasattr(container, "nodes"):
+        nodes = container.nodes
+    else:
+        raise TypeError("[find_closest_node] container must be an Assembly or Part object")
+
+    for node in nodes:
+        x, y, z = node.coordinates
+        dx = x - reference_point[0]
+        dy = y - reference_point[1]
+        dz = z - reference_point[2]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+        if dist < min_dist:
+            min_dist = dist
+            closest_node = node
+
+    return closest_node, closest_node.label
+
+def find_closest_node_restricted_direction(container, reference_point, instance_name=None, min_dist=1e20, restricted_directions = [0, 0, 0]):
+    """
+    Given a list of nodes and a point in R3, the function will return the closest
+    node based on Euclidean distance with a restriction on the direction it can search.
+
+    Parameters
+    ----------
+    nodes : Abaqus Node list
+    reference_point : tuple containing location information (x, y, z)
+    restricted_direction = list[] containing the permissibility of each dof
+        x = restricted_direction[0]
+        y = restricted_direction[1]
+        z = restricted_direction[2]
+
+        The value for each of the above index locations represents the restriction applied:
+            -1 : Do not search in the -ve direction
+             0 : No restrictions applied (use find_closest_node() potentially)
+             1 : Do not search in the +ve direction
+
+    Returns
+    -------
+    Closest Abaqus Node item to target_point from the restricted domain
     """
 
     # Extract nodes

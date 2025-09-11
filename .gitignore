@@ -33,6 +33,15 @@
 *.dat
 *.fil
 *.jsonl
+*.rpy
+*.rec
+*.sim
+*.ipm
+*.com
+*.prt
+*.msg
+*.sta
+
 
 # Data directory #
 ######################

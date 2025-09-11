@@ -2,7 +2,7 @@ import subprocess
 import os
 
 from utils.FiniteElementModel import FiniteElementModel
-from models.IO_buckling import PanelInput, PanelOutput
+from utils.IO_utils import PanelInput, PanelOutput
 
 from datetime import datetime
 now = datetime.now()
