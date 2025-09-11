@@ -42,7 +42,6 @@
 *.msg
 *.sta
 
-
 # Data directory #
 ######################
 data/
