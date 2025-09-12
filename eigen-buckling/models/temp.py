@@ -54,7 +54,7 @@ output_directory = r'data\\output.jsonl'
 os.chdir(working_directory)
 
 # !!! Set correct job name
-job_name = 'buckling_eigen_panel'
+job_name = 'parametric-panel'
 
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
