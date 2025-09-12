@@ -39,7 +39,7 @@ def find_closest_node(container, reference_point, instance_name=None,
     
     # Check if restrictions are actually restrictive
     has_restrictions = (restricted_directions is not None and 
-                       any(r != 0 for r in restricted_directions))
+                        any(r != 0 for r in restricted_directions))
     
     # Choose optimal algorithm path
     if not has_restrictions and search_radius is None:
@@ -83,7 +83,6 @@ def _find_closest_restricted(nodes, reference_point, restricted_directions):
         x, y, z = node.coordinates
         dx, dy, dz = x - ref_x, y - ref_y, z - ref_z
         
-        # Check restrictions inline for speed
         reject = False
         if restricted_directions[0] == -1 and dx < 0:
             reject = True
@@ -157,15 +156,16 @@ def find_closest_node_left(container, reference_point, instance_name=None):
     return find_closest_node(container, reference_point, instance_name,
                            restricted_directions=[1, 0, 0])
 
-def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2):
+def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2, restricted_directions=None):
     """Move the closest nodes along the axis_dof direction to target_point along the free_dof direction"""
-    reference_point, _ = find_closest_node(part, target_point)
+    # Pass the restricted_directions directly - if they have not been called, they will be None, otherwise, we have a restricted domain
+    reference_point, _ = find_closest_node(part, target_point, restricted_directions=restricted_directions)
 
     # Capture all of the points on the part that lie along the line of action of the dof
     capture_offset = 0.001
     max_bound = 1e5 # A large number that will never be reached by the bounds of the part
 
-    # Capture nodes along the neutral axis defined by the dof and the reference_point
+    # Capture nodes along the axis defined by the dof and the reference_point
     nodes, _ = get_nodes_along_axis(part, reference_point.coordinates, axis_dof, max_bound, capture_offset)
 
     for node in nodes:
@@ -422,17 +422,3 @@ def create_node_set(container, set_name, instance_name=None, bounds=None):
     labels = [node.label for node in target_nodes]
 
     return target_nodes, labels
-
-def create_node_set_bounds(assembly, set_name, instance_name, bounds):
-    """Create a node set by selecting all edges within a bounding box."""
-    x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    nodes = assembly.instances[instance_name].nodes.getByBoundingBox(
-        xMin=x_min, xMax=x_max,
-        yMin=y_min, yMax=y_max,
-        zMin=z_min, zMax=z_max
-    )
-    if not nodes:
-        raise ValueError("[create_node_set_bounds] No nodes found for set '{}' in bounds {} on instance '{}'.".format(set_name, bounds, instance_name))
-    assembly.Set(name=set_name, nodes=nodes)
-    print("[create_node_set_bounds] Created node set '{}' on '{}' with {} node(s).".format(set_name, instance_name, len(nodes)))
-    return nodes

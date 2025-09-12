@@ -1,0 +1,197 @@
+# -*- coding: mbcs -*-
+#
+# Abaqus/CAE Release 2020 replay file
+# Internal Version: 2019_09_13-10.49.31 163176
+# Run by sbonnell on Fri Sep 12 10:58:34 2025
+#
+
+# from driverUtils import executeOnCaeGraphicsStartup
+# executeOnCaeGraphicsStartup()
+#: Executing "onCaeGraphicsStartup()" in the site directory ...
+from abaqus import *
+from abaqusConstants import *
+session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=244.630065917969, 
+    height=228.433334350586)
+session.viewports['Viewport: 1'].makeCurrent()
+session.viewports['Viewport: 1'].maximize()
+from caeModules import *
+from driverUtils import executeOnCaeStartup
+executeOnCaeStartup()
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
+    referenceRepresentation=ON)
+execfile(
+    'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py', 
+    __main__.__dict__)
+#: 
+#: 
+#: Start Time: 2025-09-12 10:58:39
+#: The model "eigen" has been created.
+#: [assign_section] Assigned section 't-0.01' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.0078' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.004' to 0 face(s) on part 'panel' using sets method.
+#: [move_closest_nodes_to_axis] Moved node '1225' from location (-0.899999976158142, 0.025000000372529, 0.0) to '(-0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1684' from location (0.300000011920929, 0.025000000372529, 0.0) to '(0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2143' from location (0.899999976158142, 0.025000000372529, 0.0) to '(0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2602' from location (-0.300000011920929, 0.025000000372529, 0.0) to '(-0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1224' from location (-0.899999976158142, 0.025000000372529, 3.0) to '(-0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1683' from location (0.300000011920929, 0.025000000372529, 3.0) to '(0.300000011920929, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2142' from location (0.899999976158142, 0.025000000372529, 3.0) to '(0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2601' from location (-0.300000011920929, 0.025000000372529, 3.0) to '(-0.300000011920929, 0.0101904906332493, 3.0)'.
+#: Assigned section 'local-thickness' to 9 elements.
+#: [equation_sets] Linked 'Web0-Follower' with Web0-Main.
+#: [equation_sets] Linked 'Web1-Follower' with Web1-Main.
+#: [equation_sets] Linked 'Web2-Follower' with Web2-Main.
+#: [equation_sets] Linked 'Web3-Follower' with Web3-Main.
+#* ValueError: Set Load-Follower may not be used; If the first term uses a set 
+#* consisting of a single point all the subsequent terms must use a single 
+#* point set.
+#* File 
+#* "C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py", 
+#* line 482, in <module>
+#*     equation_sets(model, 'Load', 'Load-Main', 'Load-Follower', linked_dof= 
+#* [1])
+#* File 
+#* "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\utils\constraint_utilities.py", 
+#* line 50, in equation_sets
+#*     (-1.0, set_two, dof)
+execfile(
+    'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py', 
+    __main__.__dict__)
+#: 
+#: 
+#: Start Time: 2025-09-12 10:59:04
+#: The model "eigen" has been created.
+#: [assign_section] Assigned section 't-0.01' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.0078' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.004' to 0 face(s) on part 'panel' using sets method.
+#: [move_closest_nodes_to_axis] Moved node '1225' from location (-0.899999976158142, 0.025000000372529, 0.0) to '(-0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1684' from location (0.300000011920929, 0.025000000372529, 0.0) to '(0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2143' from location (0.899999976158142, 0.025000000372529, 0.0) to '(0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2602' from location (-0.300000011920929, 0.025000000372529, 0.0) to '(-0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1224' from location (-0.899999976158142, 0.025000000372529, 3.0) to '(-0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1683' from location (0.300000011920929, 0.025000000372529, 3.0) to '(0.300000011920929, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2142' from location (0.899999976158142, 0.025000000372529, 3.0) to '(0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2601' from location (-0.300000011920929, 0.025000000372529, 3.0) to '(-0.300000011920929, 0.0101904906332493, 3.0)'.
+#: Assigned section 'local-thickness' to 36 elements.
+#: [equation_sets] Linked 'Web0-Follower' with Web0-Main.
+#: [equation_sets] Linked 'Web1-Follower' with Web1-Main.
+#: [equation_sets] Linked 'Web2-Follower' with Web2-Main.
+#: [equation_sets] Linked 'Web3-Follower' with Web3-Main.
+#* ValueError: Set Load-Follower may not be used; If the first term uses a set 
+#* consisting of a single point all the subsequent terms must use a single 
+#* point set.
+#* File 
+#* "C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py", 
+#* line 482, in <module>
+#*     equation_sets(model, 'Load', 'Load-Main', 'Load-Follower', linked_dof= 
+#* [1])
+#* File 
+#* "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\utils\constraint_utilities.py", 
+#* line 50, in equation_sets
+#*     (-1.0, set_two, dof)
+p = mdb.models['eigen'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=ON, 
+    engineeringFeatures=ON)
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
+    referenceRepresentation=OFF)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.06205, 
+    farPlane=10.9768, width=1.08081, height=0.915542, viewOffsetX=0.807662, 
+    viewOffsetY=0.19917)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.91827, 
+    farPlane=11.1684, width=1.0588, height=0.896902, cameraPosition=(6.03552, 
+    3.72989, 7.15144), cameraUpVector=(-0.486647, 0.711863, -0.506386), 
+    cameraTarget=(0.0666795, -0.0941706, 1.57475), viewOffsetX=0.791218, 
+    viewOffsetY=0.195114)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=6.64374, 
+    farPlane=11.4429, width=2.59333, height=2.19679, viewOffsetX=0.253043, 
+    viewOffsetY=0.130373)
+execfile(
+    'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py', 
+    __main__.__dict__)
+#: 
+#: 
+#: Start Time: 2025-09-12 10:59:59
+#: The model "eigen" has been created.
+#: [assign_section] Assigned section 't-0.01' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.0078' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.004' to 0 face(s) on part 'panel' using sets method.
+#: [move_closest_nodes_to_axis] Moved node '1225' from location (-0.899999976158142, 0.025000000372529, 0.0) to '(-0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1684' from location (0.300000011920929, 0.025000000372529, 0.0) to '(0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2143' from location (0.899999976158142, 0.025000000372529, 0.0) to '(0.899999976158142, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2602' from location (-0.300000011920929, 0.025000000372529, 0.0) to '(-0.300000011920929, 0.0101904906332493, 0.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1224' from location (-0.899999976158142, 0.025000000372529, 3.0) to '(-0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '1683' from location (0.300000011920929, 0.025000000372529, 3.0) to '(0.300000011920929, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2142' from location (0.899999976158142, 0.025000000372529, 3.0) to '(0.899999976158142, 0.0101904906332493, 3.0)'.
+#: [move_closest_nodes_to_axis] Moved node '2601' from location (-0.300000011920929, 0.025000000372529, 3.0) to '(-0.300000011920929, 0.0101904906332493, 3.0)'.
+#: Assigned section 'local-thickness' to 36 elements.
+#: Assigned section 'local-thickness' to 36 elements.
+#: [equation_sets] Linked 'Web0-Follower' with Web0-Main.
+#: [equation_sets] Linked 'Web1-Follower' with Web1-Main.
+#: [equation_sets] Linked 'Web2-Follower' with Web2-Main.
+#: [equation_sets] Linked 'Web3-Follower' with Web3-Main.
+#* ValueError: Set Load-Follower may not be used; If the first term uses a set 
+#* consisting of a single point all the subsequent terms must use a single 
+#* point set.
+#* File 
+#* "C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py", 
+#* line 483, in <module>
+#*     equation_sets(model, 'Load', 'Load-Main', 'Load-Follower', linked_dof= 
+#* [1])
+#* File 
+#* "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\utils\constraint_utilities.py", 
+#* line 50, in equation_sets
+#*     (-1.0, set_two, dof)
+a = mdb.models['eigen'].rootAssembly
+session.viewports['Viewport: 1'].setValues(displayedObject=a)
+session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+    optimizationTasks=OFF, geometricRestrictions=OFF, stopConditions=OFF)
+p = mdb.models['eigen'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+session.viewports['Viewport: 1'].view.setValues(nearPlane=7.04872, 
+    farPlane=10.9901, width=1.15703, height=0.980114, viewOffsetX=0.940722, 
+    viewOffsetY=0.238172)
+execfile(
+    'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py', 
+    __main__.__dict__)
+#: 
+#: 
+#: Start Time: 2025-09-12 11:01:47
+#: The model "eigen" has been created.
+#: [assign_section] Assigned section 't-0.01' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.0078' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.004' to 0 face(s) on part 'panel' using sets method.
+#: [equation_sets] Linked 'Web0-Follower' with Web0-Main.
+#: [equation_sets] Linked 'Web1-Follower' with Web1-Main.
+#: [equation_sets] Linked 'Web2-Follower' with Web2-Main.
+#: [equation_sets] Linked 'Web3-Follower' with Web3-Main.
+#* ValueError: [get_nodes_along_axis] No nodes found in bounds ([-1.501, 
+#* -100000.0, 0.00919049022720058], [-1.499, 100000.0, 0.0111904902272006]) on 
+#* instance 'panel'.
+#* File 
+#* "C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py", 
+#* line 478, in <module>
+#*     _, centroid_labels_free = get_nodes_along_axis(assembly, 
+#* reference_point=free_point, dof=2, instance_name='panel')
+#* File 
+#* "C:\Users\sbonnell\Desktop\lase\projects\ultimate-strength\eigen-buckling\utils\node_utilities.py", 
+#* line 238, in get_nodes_along_axis
+#*     raise ValueError("[get_nodes_along_axis] No nodes found in bounds {} on 
+#* instance '{}'.".format((lower, upper), instance_name))
+execfile(
+    'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength/eigen-buckling/models/temp.py', 
+    __main__.__dict__)
+#: 
+#: 
+#: Start Time: 2025-09-12 11:02:18
+#: The model "eigen" has been created.
+#: [assign_section] Assigned section 't-0.01' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.0078' to 0 face(s) on part 'panel' using sets method.
+#: [assign_section] Assigned section 't-0.004' to 0 face(s) on part 'panel' using sets method.
+session.viewports['Viewport: 1'].setValues(displayedObject=None)
+p = mdb.models['eigen'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p)
+session.viewports['Viewport: 1'].view.setValues(width=3.20825, height=2.71769, 
+    viewOffsetX=0.00278967, viewOffsetY=-0.0180913)
+p1 = mdb.models['eigen'].parts['panel']
+session.viewports['Viewport: 1'].setValues(displayedObject=p1)
