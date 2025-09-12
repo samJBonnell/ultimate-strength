@@ -147,3 +147,8 @@ class PanelOutput(object):
             "job_name": self.job_name,
             "steps": self.steps
         }
+    
+def write_debug_file(object, file):
+    f = open(file, "w")
+    f.write("{}\n".format(object))
+    f.close()

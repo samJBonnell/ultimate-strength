@@ -33,7 +33,7 @@ def to_dict(obj):
     else:
         return obj
 
-class FiniteElementModel(Generic[T, U]):
+class FEMPipeline(Generic[T, U]):
     def __init__(self,
                  model: str,
                  input_path: str,

@@ -4,6 +4,8 @@ import json
 import random
 from pathlib import Path
 from tqdm import tqdm
+import gzip
+import numpy as np
 from utils.IO_utils import PanelInput, PanelOutput
 
 @dataclass
@@ -113,6 +115,32 @@ def get_record_count(input_path: Path, output_path: Path) -> tuple[int, int, int
     
     matched_count = len(input_ids & output_ids)
     return len(input_ids), len(output_ids), matched_count
+
+# Operations related to the import and export of json files
+
+def clean_json(obj):
+    if isinstance(obj, dict):
+        return {k: clean_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json(i) for i in obj]
+    elif isinstance(obj, (np.integer, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float32, np.float64)):
+        return float(obj)
+    elif hasattr(obj, 'to_dict'):
+        return clean_json(obj.to_dict())
+    else:
+        return obj
+
+def write_trial_ndjson(output, path="results.jsonl"):
+    with open(path, "a") as f:
+        json_line = json.dumps(clean_json(output))
+        f.write(json_line + "\n")
+
+def write_trial_ndjson_gz(output, path="results.jsonl.gz"):
+    with gzip.open(path, "ab") as f:
+        json_line = json.dumps(output.to_dict()) + "\n"
+        f.write(json_line.encode("utf-8"))
 
 # # Example usage:
 # if __name__ == "__main__":
