@@ -35,7 +35,7 @@
 *.dat
 *.fil
 *.jsonl
-*.rpy
+*.rpy.*
 *.rec
 *.sim
 *.ipm
