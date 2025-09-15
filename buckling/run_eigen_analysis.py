@@ -33,7 +33,7 @@ panel = PanelInput(
 )
 
 fem_model = FEMPipeline(
-    model="models\\temp.py",
+    model="models\\eigen.py",
     input_path="data\\input.jsonl", 
     output_path="data\\output.jsonl",
     input_class=PanelInput,

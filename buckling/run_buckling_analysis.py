@@ -2,8 +2,8 @@
 import subprocess
 from datetime import datetime
 
-from utils.FiniteElementModel import FiniteElementModel
-from models.IO_buckling import PanelInput, PanelOutput
+from utils.FEMPipeline import FEMPipeline
+from utils.IO_utils import PanelInput, PanelOutput
 
 now = datetime.now()
 print(f"Buckling Analysis Start Time: {now}")
@@ -19,7 +19,7 @@ panel = PanelInput(
 
     # Thickness List
     t_panel = 0.010,
-    t_longitudinal_web = 0.078,
+    t_longitudinal_web = 0.0078,
     t_longitudinal_flange = 0.004,
 
     # Local stiffener geometry
@@ -27,16 +27,16 @@ panel = PanelInput(
     w_longitudinal_flange = 0.100,
 
     # Applied Pressure
-    axial_force = 10000000,
+    axial_force = 1e6,
 
     # Mesh Settings
-    mesh_plate = 0.05,
-    mesh_longitudinal_web = 0.025,
-    mesh_longitudinal_flange = 0.05
+    mesh_plate = 0.02,
+    mesh_longitudinal_web = 0.125 / 6,
+    mesh_longitudinal_flange = 0.025
 )
 
-trial = 'buckling_riks_panel'
-imperfection_file = 'buckling_eigen_panel'
+trial = 'riks'
+imperfection_file = 'eigen'
 
 # Define the imperfection block
 imperfection_block = [
@@ -53,9 +53,16 @@ field_output_block = [
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Static Method
-fem = FiniteElementModel("models\\buckling_eigen_panel.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
-fem.write(panel)
-fem.run()
+fem_model = FEMPipeline(
+    model="models\\eigen.py",
+    input_path="data\\input.jsonl", 
+    output_path="data\\output.jsonl",
+    input_class=PanelInput,
+    output_class=PanelOutput
+)
+
+fem_model.write(panel)
+fem_model.run()
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Riks Method
@@ -63,9 +70,15 @@ now = datetime.now()
 print(f"Start Time: {now}")
 
 # Write the initial input file
-fem = FiniteElementModel(f"models\\{trial}.py", "data\\input.jsonl", "data\\output.jsonl", PanelInput, PanelOutput)
-fem.write(panel)
-fem.run()
+fem_model = FEMPipeline(
+    model="models\\riks.py",
+    input_path="data\\input.jsonl", 
+    output_path="data\\output.jsonl",
+    input_class=PanelInput,
+    output_class=PanelOutput
+)
+fem_model.write(panel)
+fem_model.run()
 
 # Read the .inp file from the disk and modify it with the imperfection
 with open(f'{trial}.inp', 'r') as f:
