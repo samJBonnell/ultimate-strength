@@ -409,14 +409,40 @@ for index, web_location in enumerate(web_locations):
 
 # Link the end of the panels together via Equations
 
-# free_point = np.array([[-panel.length / 2], [0.0], [centroid]])
-
-# _, centroid_labels_free = get_nodes_along_axis(assembly, reference_point=free_point, dof=2, instance_name='panel')
-
 assembly.Set(name = 'Load-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((centroid_labels_free[0],)))
 assembly.Set(name = 'Load-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(centroid_labels_free[1:]))
-
 equation_sets(model, 'Load', 'Load-Follower', 'Load-Main', linked_dof= [1])
+
+# Link the end of the plate together in the x-axis direction to ensure it all moves as a group
+# Points along the axis we want to capture the points
+point_one = np.array([[panel.length / 2], [0.0], [0.0]])
+point_two = np.array([[-panel.length / 2], [0.0], [0.0]])
+
+# Labels of the nodes we have captured along the z-axis of the free ends of the panel
+_, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=2, instance_name='panel')
+_, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=2, instance_name='panel')
+
+assembly.Set(name = 'Free-End-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_one[0],)))
+assembly.Set(name = 'Free-End-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_one[1:]))
+
+assembly.Set(name = 'Fixed-End-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_two[0],)))
+assembly.Set(name = 'Fixed-End-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_two[1:]))
+
+equation_sets(
+    model=model,
+    name='Free-End',
+    set_one='Free-End-Follower',
+    set_two='Free-End-Main',
+    linked_dof=[1]
+)
+
+equation_sets(
+    model=model,
+    name='Fixed-End',
+    set_one='Fixed-End-Follower',
+    set_two='Fixed-End-Main',
+    linked_dof=[1]
+)
 
 
 # Link via constraints instead?
