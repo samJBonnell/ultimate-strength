@@ -45,7 +45,7 @@ class ThicknessGroup(object):
     def __repr__(self):
         return "ThicknessGroup({})".format(self.__dict__)
 
-class PanelInput(object):
+class ModelInput(object):
     def __init__(self, model_name, job_name, num_longitudinal, width, length, t_panel, 
                  t_longitudinal_web, t_longitudinal_flange, h_longitudinal_web,
                  w_longitudinal_flange, axial_force, mesh_plate, 
@@ -83,7 +83,7 @@ class PanelInput(object):
         self.centroid = centroid if centroid is not None else -1
     
     def __repr__(self):
-        return "PanelInput({})".format(self.__dict__)
+        return "ModelInput({})".format(self.__dict__)
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ class ElementDisplacement(object):
             "z": self.z
         }
 
-class PanelOutput(object):
+class ModelOutput(object):
     def __init__(self, id, element_counts, stress_field, displacement_field, job_name, steps):
         self.id = id
         self.element_counts = element_counts                  # Dict[str, int]
@@ -140,7 +140,7 @@ class PanelOutput(object):
         for step, disps in d.get("displacement_field", {}).items():
             displacement_field[step] = [ElementDisplacement.from_dict(s) for s in disps]
         
-        return PanelOutput(
+        return ModelOutput(
             id=d["id"],
             element_counts=d["element_counts"],
             stress_field=stress_field,

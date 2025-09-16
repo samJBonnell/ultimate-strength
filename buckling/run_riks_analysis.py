@@ -2,7 +2,7 @@ import subprocess
 import re
 
 from utils.FEMPipeline import FEMPipeline
-from utils.IO_utils import PanelInput, PanelOutput
+from utils.IO_utils import ModelInput, ModelOutput
 
 from datetime import datetime
 now = datetime.now()
@@ -13,7 +13,7 @@ model_name = 'riks'
 trial_id = '1'
 job_name = model_name + "_" + trial_id
 
-panel = PanelInput(
+panel = ModelInput(
     model_name=model_name,
     job_name=job_name,
 
@@ -29,7 +29,7 @@ panel = PanelInput(
     t_longitudinal_flange = 0.004,
 
     # Local stiffener geometry
-    h_longitudinal_web = 0.125,
+    h_longitudinal_web = 0.125 + ((0.010 + 0.004) / 2),
     w_longitudinal_flange = 0.100,
 
     # Applied Pressure
@@ -37,12 +37,14 @@ panel = PanelInput(
 
     # Mesh Settings
     mesh_plate = 0.02,
-    mesh_longitudinal_web = 13.228E-03,
+    mesh_longitudinal_web = 20.833E-03,
     mesh_longitudinal_flange = 0.025,
 
     # Model Parameters
     numCpus=4,
-    numGpus=0
+    numGpus=0,
+
+    centroid=13e-03
 )
 
 imperfection_file = 'eigen_' + trial_id
@@ -67,8 +69,8 @@ fem_model = FEMPipeline(
     model="models\\riks.py",
     input_path="data\\input.jsonl", 
     output_path="data\\output.jsonl",
-    input_class=PanelInput,
-    output_class=PanelOutput
+    input_class=ModelInput,
+    output_class=ModelOutput
 )
 fem_model.write(panel)
 fem_model.run()

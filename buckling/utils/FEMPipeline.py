@@ -5,9 +5,6 @@ import subprocess
 import uuid
 import datetime
 
-# Import from your new location
-from utils.IO_utils import PanelInput, PanelOutput
-
 T = TypeVar("T")
 U = TypeVar("U")
 

@@ -172,7 +172,7 @@ for eps in eps_plastic_range:
     plastic_data.append((stress, eps_L + eps))  # plastic strain includes plateau
 
 # Assign to material
-material.Plastic(table=plastic_data)
+# material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
@@ -194,7 +194,7 @@ for index in range(len(ThicknessList)):
     useDensity=OFF)
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 5
+thickness_multiplier = 10
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
@@ -471,13 +471,13 @@ model.StaticRiksStep(
     name='Riks-Step',
     previous='Initial',
     nlgeom=ON,
-    initialArcInc=0.1,
+    initialArcInc=0.01,
     maxArcInc=1e36,
-    maxNumInc=50,
+    maxNumInc=30,
     nodeOn=ON,
     region=load_region,
     dof=1,
-    maximumDisplacement=0.5
+    maximumDisplacement=0.3
 )
 
 model.ConcentratedForce(

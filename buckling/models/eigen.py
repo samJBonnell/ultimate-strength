@@ -194,7 +194,7 @@ for index in range(len(ThicknessList)):
     useDensity=OFF)
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 5
+thickness_multiplier = 10
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
