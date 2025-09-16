@@ -1,15 +1,20 @@
-# Python Includes
 import subprocess
-from datetime import datetime
+import re
 
 from utils.FEMPipeline import FEMPipeline
 from utils.IO_utils import PanelInput, PanelOutput
 
+from datetime import datetime
 now = datetime.now()
-print(f"Buckling Analysis Start Time: {now}")
+print(f"Start Time: {now}")
+
+model_name = 'riks'
+trial_id = re.sub(r'[:\s\-\.]', '_', str(now))
+job_name = model_name + "_" + trial_id
 
 panel = PanelInput(
-    id = "",
+    model_name=model_name,
+    job_name=job_name,
 
     # Global Geometry
     num_longitudinal = 4,
@@ -31,12 +36,15 @@ panel = PanelInput(
 
     # Mesh Settings
     mesh_plate = 0.02,
-    mesh_longitudinal_web = 0.125 / 6,
-    mesh_longitudinal_flange = 0.025
+    mesh_longitudinal_web = 13.228E-03,
+    mesh_longitudinal_flange = 0.025,
+
+    # Model Parameters
+    numCpus=4,
+    numGpus=0
 )
 
-trial = 'riks'
-imperfection_file = 'eigen'
+imperfection_file = 'eigen_' + trial_id
 
 # Define the imperfection block
 imperfection_block = [
@@ -52,7 +60,7 @@ field_output_block = [
 ]
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Static Method
+# Run the eigen analysis
 fem_model = FEMPipeline(
     model="models\\eigen.py",
     input_path="data\\input.jsonl", 
@@ -65,9 +73,6 @@ fem_model.write(panel)
 fem_model.run()
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Riks Method
-now = datetime.now()
-print(f"Start Time: {now}")
 
 # Write the initial input file
 fem_model = FEMPipeline(
@@ -81,7 +86,7 @@ fem_model.write(panel)
 fem_model.run()
 
 # Read the .inp file from the disk and modify it with the imperfection
-with open(f'{trial}.inp', 'r') as f:
+with open(f'{job_name}.inp', 'r') as f:
     lines = f.readlines()
 
 insert_index = next(i for i, line in enumerate(lines) if line.strip().upper().startswith('*STEP'))
@@ -101,9 +106,9 @@ lines = lines[:insert_index] + imperfection_block + lines[insert_index:]
 # Insert the output block just before *END STEP
 lines[end_step_index:end_step_index] = field_output_block
 
-with open(f'{trial}.inp', 'w') as f:
+with open(f'{job_name}.inp', 'w') as f:
     f.writelines(lines)
 
 # Run the analysis using the .inp file
-functionCall = subprocess.Popen(f"abaqus job={trial} ask_delete=OFF", shell=True)
+functionCall = subprocess.Popen(f"abaqus job={job_name} ask_delete=OFF", shell=True)
 functionCall.communicate()

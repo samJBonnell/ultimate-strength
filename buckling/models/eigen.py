@@ -6,10 +6,9 @@
 import numpy as np
 import os
 import json
-import gzip
-import random
 import math
 from datetime import datetime
+import re
 
 # ABAQUS Prefactory Information
 from abaqus import *
@@ -35,17 +34,11 @@ import odbAccess
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
-current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print("\n\nStart Time: {}\n\n".format(current_time))
-
 # !!! Set correct working directory !!!
 working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\buckling'
 input_directory = r'data\\input.jsonl'
 output_directory = r'data\\output.jsonl'
 os.chdir(working_directory)
-
-# !!! Set correct job name
-job_name = 'eigen'
 
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
@@ -75,11 +68,14 @@ thicknesses = ThicknessGroup(
 
 ThicknessList = thicknesses.unique()
 
+model_name = str(panel.model_name)
+job_name = str(panel.job_name)
+
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Start of Definition of Panel Model
 
 # Create model object
-model = mdb.Model(name='eigen')
+model = mdb.Model(name=model_name)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -147,7 +143,7 @@ p.Set(faces=all_faces, name="WebFaces")
 material = model.Material(name='steel')
 
 # Elastic properties
-E = 200e9  # Pa
+E = 210e9  # Pa
 nu = 0.3
 material.Elastic(table=((E, nu),))
 
@@ -289,18 +285,6 @@ p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
 # Find the node closest to the centroid of the face
 assembly.regenerate()
 capture_offset = 0.001
-centroid_offset = -0.002
-
-A_panel = panel.width * panel.t_panel
-A_web = panel.h_longitudinal_web * panel.t_longitudinal_web * panel.num_longitudinal
-A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
-
-y_panel = panel.t_panel / 2
-y_web = panel.t_panel + (panel.h_longitudinal_web) / 2
-y_flange = (panel.t_panel / 2) + panel.h_longitudinal_web + (panel.t_longitudinal_flange / 2)
-
-# If the TIE constraints defined between the edges and the surfaces are not set with thickness=ON, you need to consider the panels to each start at the half-thickness of the surface
-centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange) + centroid_offset
 
 # The centroid is based on the half-thickness of the plates
 A_panel = panel.width * panel.t_panel
@@ -312,7 +296,10 @@ y_panel = 0.0
 y_web = panel.h_longitudinal_web / 2
 y_flange = panel.h_longitudinal_web
 
-centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange) + centroid_offset
+if panel.centroid == -1:
+    centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange)
+else:
+    centroid = panel.centroid
 
 # Apply load to the left most edge of the panel
 web_step = panel.width / (panel.num_longitudinal + 1)
@@ -520,13 +507,13 @@ job = mdb.Job(
     historyPrint=OFF,
     memory=90,
     memoryUnits=PERCENTAGE,
-    model='eigen',
+    model=model_name,
     modelPrint=OFF,
     multiprocessingMode=DEFAULT,
     name=job_name,
     nodalOutputPrecision=SINGLE,
-    numCpus=4,
-    numGPUs=0,
+    numCpus=int(panel.numCpus),
+    numGPUs=int(panel.numGpus),
     queue=None,
     resultsFormat=ODB,
     scratch='',
@@ -534,7 +521,7 @@ job = mdb.Job(
     userSubroutine='',
     waitHours=0,
     waitMinutes=0,
-    numDomains=4
+    numDomains=int(panel.numCpus)
 )
 
 job.writeInput()

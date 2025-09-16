@@ -46,11 +46,13 @@ class ThicknessGroup(object):
         return "ThicknessGroup({})".format(self.__dict__)
 
 class PanelInput(object):
-    def __init__(self, id, num_longitudinal, width, length, t_panel, 
+    def __init__(self, model_name, job_name, num_longitudinal, width, length, t_panel, 
                  t_longitudinal_web, t_longitudinal_flange, h_longitudinal_web,
                  w_longitudinal_flange, axial_force, mesh_plate, 
-                 mesh_longitudinal_web, mesh_longitudinal_flange):
-        self.id = id
+                 mesh_longitudinal_web, mesh_longitudinal_flange, numCpus=None, numGpus=None, centroid=None):
+        
+        self.model_name = model_name
+        self.job_name = job_name
         
         # Global Geometry
         self.num_longitudinal = num_longitudinal
@@ -73,6 +75,12 @@ class PanelInput(object):
         self.mesh_plate = mesh_plate
         self.mesh_longitudinal_web = mesh_longitudinal_web
         self.mesh_longitudinal_flange = mesh_longitudinal_flange
+
+        # Model Parameters
+        self.numCpus = numCpus if numCpus is not None else 1
+        self.numGpus = numGpus if numGpus is not None else 0
+
+        self.centroid = centroid if centroid is not None else -1
     
     def __repr__(self):
         return "PanelInput({})".format(self.__dict__)

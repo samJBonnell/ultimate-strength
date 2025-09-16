@@ -5,8 +5,14 @@ from datetime import datetime
 now = datetime.now()
 print(f"Start Time: {now}")
 
+model_name = 'eigen'
+# trial_id = re.sub(r'[:\s\-\.]', '_', str(now))
+trial_id = '1'
+job_name = model_name + "_" + trial_id
+
 panel = PanelInput(
-    id = "",
+    model_name=model_name,
+    job_name=job_name,
 
     # Global Geometry
     num_longitudinal = 4,
@@ -28,8 +34,12 @@ panel = PanelInput(
 
     # Mesh Settings
     mesh_plate = 0.02,
-    mesh_longitudinal_web = 0.125 / 6,
-    mesh_longitudinal_flange = 0.025
+    mesh_longitudinal_web = 13.228E-03,
+    mesh_longitudinal_flange = 0.025,
+
+    # Model Parameters
+    numCpus=4,
+    numGpus=0
 )
 
 fem_model = FEMPipeline(
