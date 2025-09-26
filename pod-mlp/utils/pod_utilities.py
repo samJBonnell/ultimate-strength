@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Dict, Tuple
 from ezyrb import POD, RBF, Database, ReducedOrderModel as ROM
 
-from utils.JSON_utils import Record
+from utils.json_utils import Record
 
 # --- 1. Extract stress vectors from Record list ---
 def extract_stress_vectors(records: List[Record]) -> List[List[float]]:

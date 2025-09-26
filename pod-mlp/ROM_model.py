@@ -6,11 +6,11 @@ import math
 from ezyrb import POD, RBF
 from ezyrb import ReducedOrderModel as ROM
 
-from utils.JSON_utils import (
+from utils.json_utils import (
     load_random_records
 )
 
-from utils.ROM_utils import (
+from utils.pod_utilities import (
     extract_stress_vectors,
     filter_valid_snapshots,
     create_ROM,

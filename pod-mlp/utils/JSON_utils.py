@@ -1,56 +1,127 @@
-from typing import Generator
-from dataclasses import dataclass
-from typing import List
+from typing import Generator, List, Optional, Set, Tuple
 import json
 import random
 from pathlib import Path
 from tqdm import tqdm
+import gzip
+import numpy as np
+from utils.IO_utils import ModelInput, ModelOutput
 
-from models.IO_hydrostatic import PanelInput, PanelOutput
-
-@dataclass
+# Create a record class that stores the results from a single simulation
 class Record:
-    input: PanelInput
-    output: PanelOutput
+    """Container for input/output pair"""
+    def __init__(self, input_data: ModelInput, output_data: ModelOutput):
+        self.input = input_data
+        self.output = output_data
+    
+    @staticmethod
+    def from_dict(d: dict) -> 'Record':
+        return Record(
+            input_data=ModelInput.from_dict(d["input"]),
+            output_data=ModelOutput.from_dict(d["output"])
+        )
+    
+    def to_dict(self) -> dict:
+        return {
+            "input": self.input.to_dict(),
+            "output": self.output.to_dict()
+        }
+
+def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set[str]] = None) -> Generator[Record, None, None]:
+    """
+    Stream records from input and output files, optionally filtering by IDs.
+    
+    Args:
+        input_path: Path to input JSONL file
+        output_path: Path to output JSONL file  
+        filter_ids: Optional set of IDs to filter by
+        
+    Yields:
+        Record objects containing matched input/output pairs
+    """
+    input_map = {}
+   
+    # Read all inputs first
+    with input_path.open("r") as f_in:
+        for line in tqdm(f_in, desc="Reading inputs"):
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+                # Use model_name as ID, or fallback to job_name
+                id_ = data.get("model_name") or data.get("job_name")
+                if (filter_ids is None) or (id_ in filter_ids):
+                    model_input = ModelInput.from_dict(data)
+                    input_map[id_] = model_input
+            except (KeyError, TypeError, json.JSONDecodeError) as e:
+                print(f"Warning: Skipping invalid input record: {e}")
+                continue
+   
+    # Stream outputs and match with inputs
+    with output_path.open("r") as f_out:
+        for line in tqdm(f_out, desc="Processing outputs"):
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+                id_ = data.get("id") or data.get("job_name")
+                if id_ in input_map:
+                    output = ModelOutput.from_dict(data)
+                    yield Record(input_map[id_], output)
+            except (KeyError, TypeError, json.JSONDecodeError) as e:
+                print(f"Warning: Skipping invalid output record: {e}")
+                continue
 
 def load_random_records(input_path: Path, output_path: Path, n: int) -> List[Record]:
-    # Load all inputs once
-    all_inputs = {}
+    """
+    Load n random records from input and output files.
+    
+    Args:
+        input_path: Path to input JSONL file
+        output_path: Path to output JSONL file
+        n: Number of records to load
+        
+    Returns:
+        List of Record objects
+    """
+    records = list(stream_records(input_path, output_path))
+    if len(records) <= n:
+        return records
+    return random.sample(records, n)
+
+def get_record_count(input_path: Path, output_path: Path) -> Tuple[int, int, int]:
+    """
+    Get counts of input records, output records, and matched records.
+    
+    Args:
+        input_path: Path to input JSONL file
+        output_path: Path to output JSONL file
+        
+    Returns:
+        Tuple of (input_count, output_count, matched_count)
+    """
+    input_ids = set()
+    output_ids = set()
+   
+    # Count inputs
     with input_path.open("r") as f:
         for line in f:
             if line.strip():
-                data = json.loads(line)
-                all_inputs[data["id"]] = data
-    all_ids = list(all_inputs.keys())
-    if len(all_ids) < n:
-        raise ValueError("Not enough records.")
-
-    sampled_ids = set(random.sample(all_ids, n))
-    # Reuse stream_records with filtered IDs
-    return list(stream_records(input_path, output_path, filter_ids=sampled_ids))
-
-def stream_records(input_path: Path, output_path: Path, filter_ids: set = None) -> Generator[Record, None, None]:
-    input_map = {}
-    with input_path.open("r") as f_in:
-        for line in tqdm(f_in, desc="Reading input.jsonl"):
-            if not line.strip():
-                continue
-            try:
-                data = json.loads(line)
-                id_ = data["id"]
-                if (filter_ids is None) or (id_ in filter_ids):
-                    input_map[id_] = PanelInput(**data)
-            except Exception:
-                continue
-
-    with output_path.open("r") as f_out:
-        for line in tqdm(f_out, desc="Reading output.jsonl"):
-            if not line.strip():
-                continue
-            try:
-                data = json.loads(line)
-                id_ = data.get("id")
-                if id_ in input_map:
-                    yield Record(input=input_map[id_], output=PanelOutput.from_dict(data))
-            except Exception:
-                continue
+                try:
+                    data = json.loads(line)
+                    input_ids.add(data["job_name"])
+                except (KeyError, json.JSONDecodeError):
+                    continue
+   
+    # Count outputs
+    with output_path.open("r") as f:
+        for line in f:
+            if line.strip():
+                try:
+                    data = json.loads(line)
+                    output_ids.add(data.get("job_name"))
+                except (KeyError, json.JSONDecodeError):
+                    continue
+   
+    matched_count = len(input_ids & output_ids)
+    return len(input_ids), len(output_ids), matched_count
