@@ -5,8 +5,8 @@ from ezyrb import POD, RBF, Database, ReducedOrderModel as ROM
 from utils.json_utils import Record
 
 # --- 1. Extract stress vectors from Record list ---
-def extract_stress_vectors(records: List[Record]) -> List[List[float]]:
-    return [[s.stress for s in r.output.stress_field] for r in records]
+def extract_von_mises_stress(records: List[Record], step = 'Step-1') -> List[List[float]]:
+    return [[s.attributes['stress'].vm for s in r.output.elements_by_step[step]] for r in records]
 
 # --- 2. Extract selected features from PanelInput ---
 def extract_input_features(records: List[Record], feature_names: List[str]) -> np.ndarray:

@@ -11,33 +11,37 @@ from utils.json_utils import (
 )
 
 from utils.pod_utilities import (
-    extract_stress_vectors,
+    extract_von_mises_stress,
     filter_valid_snapshots,
     create_ROM,
-    training_data_constructor,
-    plot_field,
+    training_data_constructor
 )
 
 # Define input and output data locations
-input_path = Path("data/hydrostatic/input.jsonl")
-output_path = Path("data/hydrostatic/output.jsonl")
+input_path = Path("data/input.jsonl")
+output_path = Path("data/output.jsonl")
 
 # Load data records
-records = load_random_records(input_path, output_path, n=500)
-stress_vectors = extract_stress_vectors(records)
+records = load_random_records(input_path, output_path, n=250)
+stress_vectors = extract_von_mises_stress(records)
 element_indices = [r.output.element_counts for r in records]
 
-feature_names = [f for f in vars(records[0].input) if f != "id"]
-all_vars = np.array([
-    [getattr(r.input, f) for f in feature_names]
-    for r in records
-], dtype=float)
+# Extract parameters with proper handling of lists
+parameters = []
+for rec in records:
+    row = [
+        rec.input.t_panel,                    # Single value
+        rec.input.pressure_location[0],       # First element of list
+        rec.input.pressure_location[1],       # Second element of list  
+        rec.input.pressure_patch_size[0],     # First element of list
+        rec.input.pressure_patch_size[1]      # Second element of list
+    ]
+    parameters.append(row)
 
-selected_keys = ["num_transverse", "num_longitudinal", "t_panel", "t_transverse_web", "t_transverse_flange", "t_longitudinal_web", "t_longitudinal_flange"]
-parameters = np.array([
-    [getattr(rec.input, k) for k in selected_keys]
-    for rec in records
-])
+parameters = np.array(parameters)
+
+# Update column names to match
+parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
 
 max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
 template_stress_field = np.zeros((int(sum(max_field_indices))))
@@ -58,7 +62,7 @@ expected_snapshot_length = int(len(training_data[max_field_index]))
 snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
 # Fit ROMs
-step_size = 50
+step_size = 24
 num_samples = parameters.shape[0]
 orders = range(11, 101, step_size)
 max_rank = 100
@@ -132,37 +136,4 @@ ax.set_zlabel("Average L2 Error")
 ax.set_title("ROM Error Surface")
 fig.colorbar(surf, shrink=0.5, aspect=5)
 plt.tight_layout()
-plt.show()
-
-# Plot the first N modes of the plate
-n_modes = 10
-modes_per_row = 5
-object_index = 2  # Index of record you want to visualize
-
-truncation_rank = -1  # Use last rank
-order = -1            # Use last order
-
-rows = math.ceil(n_modes / modes_per_row)
-fig, axes = plt.subplots(rows, modes_per_row, figsize=(5 * modes_per_row, 4 * rows))
-axes = axes.flatten()
-
-for i in range(n_modes):
-    plot_field(
-        axes[i],
-        pods[order][truncation_rank].modes[:, i],
-        records[object_index].input,
-        object_index=object_index,
-        object_index_map=object_index_maps[object_index]
-    )
-
-    axes[i].set_title(f"Mode {i+1}")
-    axes[i].set_xlabel("x (m)")
-    axes[i].set_ylabel("y (m)")
-    axes[i].set_aspect("equal")
-
-for j in range(n_modes, len(axes)):
-    axes[j].axis("off")
-
-plt.suptitle(f"POD Plate First {n_modes} Stress Modes", fontsize=16)
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 plt.show()
