@@ -1,7 +1,152 @@
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from pathlib import Path
+# import math
+
+# from ezyrb import POD, RBF
+# from ezyrb import ReducedOrderModel as ROM
+
+# from utils.json_utils import (
+#     load_random_records
+# )
+
+# from utils.pod_utilities import (
+#     extract_von_mises_stress,
+#     filter_valid_snapshots,
+#     create_ROM,
+#     training_data_constructor,
+#     plot_field,
+# )
+
+# # Define input and output data locations
+# input_path = Path("data/input.jsonl")
+# output_path = Path("data/output.jsonl")
+
+# # Load data records
+# records = load_random_records(input_path, output_path, n=250)
+# stress_vectors = extract_von_mises_stress(records)
+# element_indices = [r.output.element_counts for r in records]
+
+# # Extract parameters with proper handling of lists
+# parameters = []
+# for rec in records:
+#     row = [
+#         rec.input.t_panel,                    # Single value
+#         rec.input.pressure_location[0],       # First element of list
+#         rec.input.pressure_location[1],       # Second element of list  
+#         rec.input.pressure_patch_size[0],     # First element of list
+#         rec.input.pressure_patch_size[1]      # Second element of list
+#     ]
+#     parameters.append(row)
+
+# parameters = np.array(parameters)
+
+# # Update column names to match
+# parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
+
+# max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
+# template_stress_field = np.zeros((int(sum(max_field_indices))))
+
+# training_data = []
+# object_index_maps = []
+# for i in range(len(stress_vectors)):
+#     field, index_map = training_data_constructor(
+#         stress_vectors[i],
+#         template_stress_field,
+#         max_field_indices,
+#         element_indices[i]
+#     )
+#     training_data.append(field)
+#     object_index_maps.append(index_map)
+
+# expected_snapshot_length = int(len(training_data[max_field_index]))
+# snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
+
+# model_order = 100
+
+# print(f"\nPlottong POD Modes for Model Order: {model_order}")
+# sample_points = np.random.choice(a=model_order, size=model_order, replace=False)
+# training_parameters = parameters[sample_points, :]
+# training_snapshots = [snapshots[i] for i in sample_points]
+
+# try:
+#     db, rom, pod, rbf = create_ROM(parameters, snapshots)
+# except Exception as e:
+#     print(f"ROM creation failed at order {model_order}: {e}")
+
+# # Define a loop to allow for the creation of variable truncation rank and variable stiffener panels
+# while True:
+#     rank_input = input("Enter the POD truncation rank (or 'q' to quit): ")
+#     if rank_input.lower() in {'q', 'quit'}:
+#         print("Exiting.")
+#         break
+#     try:
+#         N = int(rank_input)
+#     except ValueError:
+#         print("Invalid input. Try again.")
+#         continue
+
+#     # Truncated POD + ROM
+#     pod_truncated = POD('svd', rank=N)
+#     pod_truncated.fit(snapshots)
+#     rom_truncated = ROM(db, pod_truncated, RBF())
+#     rom_truncated.fit()
+
+#     while True:
+#         tran_input = input("Enter number of transverse stiffeners (or 'q'): ")
+#         if tran_input.lower() in {'q', 'quit'}:
+#             break
+#         long_input = input("Enter number of longitudinal stiffeners (or 'q'): ")
+#         if long_input.lower() in {'q', 'quit'}:
+#             break
+
+#         try:
+#             tran = int(tran_input)
+#             long = int(long_input)
+#         except ValueError:
+#             print("Invalid stiffener count. Try again.")
+#             continue
+
+#         test_index = 10  # Example test index
+#         new_parameters = parameters[test_index, :].copy()
+#         new_parameters[feature_names.index("num_transverse")] = tran
+#         new_parameters[feature_names.index("num_longitudinal")] = long
+
+#         full_snapshot = rom.predict(new_parameters).snapshots_matrix[0]
+#         pod_snapshot = rom_truncated.predict(new_parameters).snapshots_matrix[0]
+
+#         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))        
+#         plot_field(
+#             ax1,
+#             full_snapshot,
+#             records[test_index].input,
+#             object_index=2,
+#             object_index_map=object_index_maps[test_index]
+#         )
+#         ax1.set_title("Full-order Approximation")
+
+#         plot_field(
+#             ax2,
+#             pod_snapshot,
+#             records[test_index].input,
+#             object_index=2,
+#             object_index_map=object_index_maps[test_index]
+#         )
+#         ax2.set_title("Reduced-order Approximation")
+
+#         for ax in (ax1, ax2):
+#             ax.set_xlabel("x (m)")
+#             ax.set_ylabel("y (m)")
+#             ax.set_aspect('equal')
+
+#         plt.suptitle(f"POD Stress Model | T: {tran}, L: {long} | Rank {N}")
+#         plt.tight_layout()
+#         plt.show()
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from dataclasses import fields
+import math
 
 from ezyrb import POD, RBF
 from ezyrb import ReducedOrderModel as ROM
@@ -11,7 +156,7 @@ from utils.json_utils import (
 )
 
 from utils.pod_utilities import (
-    extract_stress_vectors,
+    extract_von_mises_stress,
     filter_valid_snapshots,
     create_ROM,
     training_data_constructor,
@@ -19,71 +164,69 @@ from utils.pod_utilities import (
 )
 
 # Define input and output data locations
-input_path = Path("data/hydrostatic/input.jsonl")
-output_path = Path("data/hydrostatic/output.jsonl")
-n_samples = 500
+input_path = Path("data/input.jsonl")
+output_path = Path("data/output.jsonl")
 
-# Selected features for training
-feature_names = [
-    "num_transverse",
-    "num_longitudinal",
-    "t_panel",
-    "t_transverse_web",
-    "t_transverse_flange",
-    "t_longitudinal_web",
-    "t_longitudinal_flange"
-]
-
-# Load data into memory by randomly sampling the input and output files
-records = load_random_records(input_path, output_path, n_samples)
-print(f"Loaded {len(records)} records.")
-
-# Exclude ID from variables and create a 2D Numpy array to store the information
-all_vars = np.array([
-    [getattr(r.input, f.name) for f in fields(r.input) if f.name != "id"]
-    for r in records
-], dtype=float)
-
-# Build feature name → index map
-all_feature_names = [f.name for f in fields(records[0].input) if f.name != "id"]
-feature_index_map = {name: i for i, name in enumerate(all_feature_names)}
-selected_indices = [feature_index_map[name] for name in feature_names]
-parameters = all_vars[:, selected_indices]
-
-# Convert stress fields to slices
-stress_vectors = extract_stress_vectors(records)
+# Load data records
+records = load_random_records(input_path, output_path, n=250)
+stress_vectors = extract_von_mises_stress(records)
 element_indices = [r.output.element_counts for r in records]
 
-# Determine the max element shape for padding/template
-max_field_index, max_field_shape = max(
-    enumerate(element_indices), key=lambda x: sum(x[1][:-1])
-)
-template_length = int(sum(max_field_shape[:-1]))
-template_stress_field = np.zeros(template_length)
+# Extract parameters with proper handling of lists
+parameters = []
+for rec in records:
+    row = [
+        rec.input.t_panel,                    # Single value
+        rec.input.pressure_location[0],       # First element of list
+        rec.input.pressure_location[1],       # Second element of list  
+        rec.input.pressure_patch_size[0],     # First element of list
+        rec.input.pressure_patch_size[1]      # Second element of list
+    ]
+    parameters.append(row)
 
-# Construct padded fields and store object index maps
+parameters = np.array(parameters)
+
+# Define parameter names that match your 5 variables
+parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
+print(f"Parameters shape: {parameters.shape}")
+print(f"Parameter names: {parameter_names}")
+
+max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
+template_stress_field = np.zeros((int(sum(max_field_indices))))
+
 training_data = []
 object_index_maps = []
 for i in range(len(stress_vectors)):
     field, index_map = training_data_constructor(
         stress_vectors[i],
         template_stress_field,
-        max_field_shape[:-1],
+        max_field_indices,
         element_indices[i]
     )
     training_data.append(field)
     object_index_maps.append(index_map)
 
-# Filter snapshots by expected shape
-snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_length=template_length)
+expected_snapshot_length = int(len(training_data[max_field_index]))
+snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
-# Train ROM
-snapshots = np.array(snapshots)
-parameters = np.array(parameters)
+model_order = min(100, len(snapshots))  # Ensure we don't exceed number of snapshots
 
-db, rom, pod, rbf = create_ROM(parameters, snapshots)
+print(f"\nCreating POD Model with {len(snapshots)} snapshots")
+print(f"Model Order: {model_order}")
 
-# Define a loop to allow for the creation of variable truncation rank and variable stiffener panels
+# Create sample for training
+sample_points = np.random.choice(a=len(snapshots), size=min(model_order, len(snapshots)), replace=False)
+training_parameters = parameters[sample_points, :]
+training_snapshots = [snapshots[i] for i in sample_points]
+
+try:
+    db, rom, pod, rbf = create_ROM(parameters, snapshots)
+    print("ROM creation successful")
+except Exception as e:
+    print(f"ROM creation failed: {e}")
+    exit()
+
+# Define a loop to allow for parameter modification
 while True:
     rank_input = input("Enter the POD truncation rank (or 'q' to quit): ")
     if rank_input.lower() in {'q', 'quit'}:
@@ -91,6 +234,9 @@ while True:
         break
     try:
         N = int(rank_input)
+        if N > len(snapshots):
+            print(f"Rank {N} exceeds number of snapshots ({len(snapshots)}). Using max available.")
+            N = len(snapshots)
     except ValueError:
         print("Invalid input. Try again.")
         continue
@@ -102,52 +248,85 @@ while True:
     rom_truncated.fit()
 
     while True:
-        tran_input = input("Enter number of transverse stiffeners (or 'q'): ")
-        if tran_input.lower() in {'q', 'quit'}:
+        print("\nCurrent parameter options:")
+        for i, name in enumerate(parameter_names):
+            print(f"{i}: {name}")
+        
+        param_input = input("Enter parameter index to modify (0-4) or 'q' to go back: ")
+        if param_input.lower() in {'q', 'quit'}:
             break
-        long_input = input("Enter number of longitudinal stiffeners (or 'q'): ")
-        if long_input.lower() in {'q', 'quit'}:
-            break
-
+            
         try:
-            tran = int(tran_input)
-            long = int(long_input)
+            param_idx = int(param_input)
+            if param_idx < 0 or param_idx >= len(parameter_names):
+                print("Invalid parameter index.")
+                continue
         except ValueError:
-            print("Invalid stiffener count. Try again.")
+            print("Invalid input. Try again.")
             continue
 
-        test_index = 10  # Example test index
+        value_input = input(f"Enter new value for {parameter_names[param_idx]}: ")
+        try:
+            new_value = float(value_input)
+        except ValueError:
+            print("Invalid value. Try again.")
+            continue
+
+        # Use a test case
+        test_index = min(10, len(records)-1)  # Ensure test_index is valid
         new_parameters = parameters[test_index, :].copy()
-        new_parameters[feature_names.index("num_transverse")] = tran
-        new_parameters[feature_names.index("num_longitudinal")] = long
+        new_parameters[param_idx] = new_value
+        
+        print(f"Modified parameters: {dict(zip(parameter_names, new_parameters))}")
 
-        full_snapshot = rom.predict(new_parameters).snapshots_matrix[0]
-        pod_snapshot = rom_truncated.predict(new_parameters).snapshots_matrix[0]
+        # Predict with both models
+        try:
+            full_snapshot = rom.predict(new_parameters).snapshots_matrix[0]
+            pod_snapshot = rom_truncated.predict(new_parameters).snapshots_matrix[0]
+        except Exception as e:
+            print(f"Prediction failed: {e}")
+            continue
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))        
-        plot_field(
-            ax1,
-            full_snapshot,
-            records[test_index].input,
-            object_index=2,
-            object_index_map=object_index_maps[test_index]
-        )
-        ax1.set_title("Full-order Approximation")
+        # Get a valid object index for plotting
+        test_object_index_map = object_index_maps[test_index]
+        available_object_indices = list(test_object_index_map.keys())
+        plot_object_index = available_object_indices[0] if available_object_indices else 0
+        
+        print(f"Using object index {plot_object_index} for plotting")
+        print(f"Available object indices: {available_object_indices}")
 
-        plot_field(
-            ax2,
-            pod_snapshot,
-            records[test_index].input,
-            object_index=2,
-            object_index_map=object_index_maps[test_index]
-        )
-        ax2.set_title("Reduced-order Approximation")
+        # Plot comparison
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+        
+        try:
+            plot_field(
+                ax1,
+                full_snapshot,
+                records[test_index].input,
+                object_index=plot_object_index,
+                object_index_map=test_object_index_map
+            )
+            ax1.set_title("Full-order Approximation")
 
-        for ax in (ax1, ax2):
-            ax.set_xlabel("x (m)")
-            ax.set_ylabel("y (m)")
-            ax.set_aspect('equal')
+            plot_field(
+                ax2,
+                pod_snapshot,
+                records[test_index].input,
+                object_index=plot_object_index,
+                object_index_map=test_object_index_map
+            )
+            ax2.set_title(f"Reduced-order Approximation (Rank {N})")
 
-        plt.suptitle(f"POD Stress Model | T: {tran}, L: {long} | Rank {N}")
-        plt.tight_layout()
-        plt.show()
+            for ax in (ax1, ax2):
+                ax.set_xlabel("x (m)")
+                ax.set_ylabel("y (m)")
+                ax.set_aspect('equal')
+
+            param_str = f"{parameter_names[param_idx]}={new_value:.3f}"
+            plt.suptitle(f"POD Stress Model | {param_str} | Rank {N}")
+            plt.tight_layout()
+            plt.show()
+            
+        except Exception as e:
+            print(f"Plotting failed: {e}")
+            print("Check if plot_field function is working correctly")
