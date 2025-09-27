@@ -60,7 +60,7 @@ def analyze_rmse_vs_order(records, training_data, parameters, parameter_names, s
         original_parameters = parameters[test_index, :].copy()
 
         # Compute max possible POD rank for this snapshot
-        max_order = min(len(snapshots) - 1, 100)  # Cap to avoid long runtimes
+        max_order = min(len(snapshots) - 1, 249)  # Cap to avoid long runtimes
 
         orders = range(1, max_order + 1, 2)  # Test every 2nd order
 

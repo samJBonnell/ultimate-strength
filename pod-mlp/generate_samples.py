@@ -11,7 +11,7 @@ dim = 5
 # Bounds for the trial variables
 bounds = np.array([
     # Plate thickness
-    [0.001, 0.075],    # plate thickness
+    [0.005, 0.075],    # plate thickness
 
     # Pressure Location
     [-1.35, 1.35],  # x-axis pressure location
