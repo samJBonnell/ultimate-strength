@@ -181,6 +181,27 @@ while True:
             plt.suptitle(f"Record {test_index} | Rank {N} | RMSE: {rmse:.2e} | Max Error: {max_error:.2e}")
             plt.tight_layout()
             plt.show()
+
+            # Plot a cross section of the panel for comparison
+            fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
+            
+            N = 54
+            side_element_count = int(np.sqrt(original_snapshot.shape[0]))
+            panel_width_vector = np.linspace(-1.5, 1.5, side_element_count)
+            original_stress = original_snapshot[N*side_element_count: (N + 1)*side_element_count]
+            predicted_stress = pod_snapshot[N*side_element_count: (N + 1)*side_element_count]
+
+            ax1.plot(panel_width_vector, original_stress / 1e6, label="fem", lw=0.7)
+            ax1.plot(panel_width_vector, predicted_stress / 1e6, label="pod", lw=0.7)
+            ax1.set_title(f"Record {test_index} | Rank {N}\nRMSE: {rmse:.2e} | Max Error: {max_error:.2e}")
+            ax1.set_xlabel("Panel Width")
+            ax1.set_ylabel("Stress")
+            plt.legend(title="data set", fontsize='small', fancybox=True, title_fontsize=7,loc='best')
+
+            plt.grid(True, which="both", ls="-",color='0.95')
+
+            plt.tight_layout()
+            plt.show()
             
         except Exception as e:
             print(f"Plotting failed: {e}")
