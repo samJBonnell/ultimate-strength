@@ -84,8 +84,7 @@ def create_ROM(parameters: np.ndarray, snapshots: List[np.ndarray]):
 
     db = Database(parameters, snapshots)
     pod = POD('svd')
-    # rbf = RBF()
-    nn_regressor = NeuralNetworkRegressor(hidden_layers=[20, 20], activation='tanh', epochs=500)
+    rbf = RBF()
 
     rom = ROM(db, pod, rbf)
     rom.fit()
