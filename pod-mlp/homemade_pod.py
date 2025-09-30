@@ -7,6 +7,14 @@ import matplotlib.pyplot as plt
 from scipy.linalg import svd
 from pathlib import Path
 import math
+from utils.mlp_utilities import MLP
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+import random
+
+from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset, DataLoader
 
 from utils.json_utils import (
     load_random_records
@@ -28,15 +36,15 @@ records = load_random_records(input_path, output_path, n=250)
 stress_vectors = extract_von_mises_stress(records)
 element_indices = [r.output.element_counts for r in records]
 
-# Extract parameters with proper handling of lists
+# Extract parameters
 parameters = []
 for rec in records:
     row = [
-        rec.input.t_panel,                    # Single value
-        rec.input.pressure_location[0],       # First element of list
-        rec.input.pressure_location[1],       # Second element of list  
-        rec.input.pressure_patch_size[0],     # First element of list
-        rec.input.pressure_patch_size[1]      # Second element of list
+        rec.input.t_panel,                    
+        rec.input.pressure_location[0],       
+        rec.input.pressure_location[1],       
+        rec.input.pressure_patch_size[0],     
+        rec.input.pressure_patch_size[1]      
     ]
     parameters.append(row)
 
@@ -67,13 +75,16 @@ for i in range(len(stress_vectors)):
 expected_snapshot_length = int(len(training_data[max_field_index]))
 snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
+snapshots = np.array(snapshots, dtype=np.float32)
+parameters = np.array(parameters, dtype=np.float32)
+
 # We want each snapshot to exist in the columns of our space
-snapshots = list(np.transpose(snapshots))
+snapshots = np.transpose(snapshots)
+parameters = np.transpose(parameters)
 
 # Centre the data about the mean of each sample across all samples
-mean_field = np.mean(snapshots, axis=1, keepdims=True)
-# centered_snapshots = snapshots - mean_field
-snapshots -= mean_field
+mean_field = np.mean(snapshots, axis=1, keepdims=True) # Centre the data about the mean of each sample across all samples
+snapshots -= mean_field # centered_snapshots = snapshots - mean_field
 
 # ---------------------------------------------------------------------------------------------------------
 # PODS
@@ -107,21 +118,152 @@ cumulative_energy = np.cumsum(relative_energy)
 # plt.tight_layout()
 # plt.show()
 
-from utils.mlp_utilities import MLP
-import torch
-import torch.nn as nn
-
-num_modes = 10
+num_modes = 50
 
 U_reduced = U[:,:num_modes] # Select the first N modes from the U matrix
 modal_coefficients = U_reduced.T @ snapshots # Compute the modal_coefficients that will represent the ground truth of our model
 
 # Convert numpy.ndarray into Tensor for MLP
-snapshots = torch.from_numpy(snapshots)
-parameters = torch.from_numpy(parameters)
+snapshots = torch.from_numpy(snapshots).float()
+parameters = torch.from_numpy(parameters).float()
+modal_coefficients = torch.from_numpy(modal_coefficients).float()
 
 # Create an MLP object that takes as input the number of parameters and output the number of modes we expect
-model = MLP(input_size=5, num_layers=10, layers_size=50, output_size=num_modes)
+model = MLP(input_size=5, num_layers=27, layers_size=200, output_size=num_modes)
+num_params = sum(p.numel() for p in model.parameters())
+print(f"Number of parameters: {num_params:,}")
 
-print(model)
-print(model(parameters).shape)
+# Send the training to our GPU if at all available
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+# Create training and validation sets using the snapshot and parameter data
+# We want to compare the coefficients computed for each snapshots as the labels
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    parameters.T, modal_coefficients.T,
+    test_size=0.2,
+    random_state=42
+)
+
+# Create datasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create dataloaders
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+# Training
+num_epochs = 1000
+model.train()
+for epoch in tqdm(range(num_epochs)):
+    total_loss = 0
+   
+    for field, labels in train_loader:
+        field = field.to(device)
+        labels = labels.to(device)
+       
+        # Forward pass
+        outputs = model(field)
+        loss = criterion(outputs, labels)
+       
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+       
+        total_loss += loss.item()
+
+# Evaluation
+model.eval()
+test_loss = 0
+with torch.no_grad():
+    for field, labels in test_loader:
+        field = field.to(device)
+        labels = labels.to(device)
+       
+        # Forward pass
+        outputs = model(field)
+        loss = criterion(outputs, labels)
+        
+        test_loss += loss.item()
+
+avg_test_loss = test_loss / len(test_loader)
+print(f"Test Loss: {avg_test_loss:.4f}")
+
+# We now have a model that will predict the modal coefficients of our system to match the reduced order system
+# We should plot the prediction against the ROM to determine how well it is working
+
+test_sample_idx = 5
+
+test_parameters = X_test[test_sample_idx]
+test_coefficients = y_test[test_sample_idx]
+
+U_reduced_tensor = torch.from_numpy(U_reduced).float().to(device)
+
+with torch.no_grad():
+    test_parameters_tensor = test_parameters.unsqueeze(0).to(device)
+    predicted_coefficients = model(test_parameters_tensor) 
+    predicted_coefficients = predicted_coefficients.squeeze(0)
+    predicted_snapshot = U_reduced_tensor @ predicted_coefficients
+    
+    ground_truth_snapshot = U_reduced_tensor @ test_coefficients.to(device)
+
+predicted_snapshot = predicted_snapshot.cpu().numpy()
+ground_truth_snapshot = ground_truth_snapshot.cpu().numpy()
+
+# Add the mean back to the predictions
+predicted_snapshot = predicted_snapshot + mean_field.squeeze()
+ground_truth_snapshot = ground_truth_snapshot + mean_field.squeeze()
+
+# Plot comparison: Ground Truth vs MLP Prediction
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+
+# Note: You'll need to find the original record index if you want to use the exact input/index_map
+# For now, using a representative one
+plot_field(
+    ax1,
+    ground_truth_snapshot,
+    records[0].input,
+    object_index=0,
+    object_index_map=object_index_maps[0]
+)
+ax1.set_title("Ground Truth (POD Reconstruction)")
+
+plot_field(
+    ax2,
+    predicted_snapshot,
+    records[0].input,
+    object_index=0,
+    object_index_map=object_index_maps[0]
+)
+ax2.set_title(f"MLP-POD Prediction")
+
+# Difference plot
+difference = ground_truth_snapshot - predicted_snapshot
+plot_field(
+    ax3,
+    difference,
+    records[0].input,
+    object_index=0,
+    object_index_map=object_index_maps[0]
+)
+ax3.set_title("Difference (Ground Truth - Predicted)")
+
+for ax in (ax1, ax2, ax3):
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_aspect('equal')
+
+# Display the test parameters
+param_str = ", ".join([f"{name}={test_parameters[i].item():.3f}" 
+                        for i, name in enumerate(parameter_names)])
+fig.suptitle(f"Test Sample {test_sample_idx}: {param_str}")
+plt.tight_layout()
+plt.show()
