@@ -62,9 +62,16 @@ for i in range(len(stress_vectors)):
 expected_snapshot_length = int(len(training_data[max_field_index]))
 snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
+snapshots = list(np.transpose(snapshots))
+
+# Centre the data about the mean of each sample across all samples
+mean_field = np.mean(snapshots, axis=1, keepdims=True)
+centered_snapshots = snapshots - mean_field
+snapshots = list(np.transpose(centered_snapshots))
+
 model_order = 100
 
-print(f"\nPlottong POD Modes for Model Order: {model_order}")
+print(f"\nPlotting POD Modes for Model Order: {model_order}")
 sample_points = np.random.choice(a=model_order, size=model_order, replace=False)
 training_parameters = parameters[sample_points, :]
 training_snapshots = [snapshots[i] for i in sample_points]

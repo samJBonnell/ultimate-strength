@@ -130,4 +130,4 @@ def plot_field(axis, training_field, panel_input, object_index, object_index_map
     X, Y = np.meshgrid(x, y)
     z = sub_field.reshape(num_l_el, num_w_el)
 
-    return axis.contourf(X, Y, z)
+    return axis.contourf(X, Y, z, cmap='RdBu_r')
