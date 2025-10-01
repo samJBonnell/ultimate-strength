@@ -48,6 +48,9 @@
 ######################
 data/
 
+# Files to exlude #
+######################
+
 # OS generated files #
 ######################
 .DS_Store
