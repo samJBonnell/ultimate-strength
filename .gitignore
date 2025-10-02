@@ -27,6 +27,7 @@
 *.log
 *.sql
 *.sqlite
+*.pth
 
 # Abaqus output and model files #
 ######################
@@ -46,7 +47,9 @@
 
 # Data directory #
 ######################
-data/
+data\
+mlp-models\
+runs\
 
 # Files to exlude #
 ######################
