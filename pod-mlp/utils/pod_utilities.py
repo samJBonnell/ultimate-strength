@@ -92,26 +92,47 @@ def create_ROM(parameters: np.ndarray, snapshots: List[np.ndarray]):
     return db, rom, pod, rbf
 
 # --- 8. Plotting Functions ---
-def plot_field(axis, training_field, panel_input, object_index, object_index_map):
+def plot_field(axis, training_field, panel_input, object_index, object_index_map, levels = 20, vmin=None, vmax=None):
     """
     Plot a specific subfield from the full training field using geometry info from PanelInput.
+    
+    Parameters:
+    -----------
+    axis : matplotlib axis
+        The axis to plot on
+    training_field : array-like
+        The full field data
+    panel_input : PanelInput
+        Panel geometry information
+    object_index : int
+        Index of the object to plot
+    object_index_map : dict
+        Mapping of object indices to field slices
+    vmin : float, optional
+        Minimum value for colormap scaling
+    vmax : float, optional
+        Maximum value for colormap scaling
+    
+    Returns:
+    --------
+    contour : matplotlib contour object
+        The contour plot object (useful for adding colorbars)
     """
     # Extract geometry
     width = float(panel_input.width)
     length = float(panel_input.length)
     mesh_size = float(panel_input.mesh_plate)
-
+    
     # Slice the field
     start, end = object_index_map[object_index]
     sub_field = np.array(training_field[start:end])
-
     print(f"Plotting sub_field[{start}:{end}] of size {len(sub_field)}")
-
+    
     # Compute grid shape
     base_w_el = int(width / mesh_size)
     base_l_el = int(length / mesh_size)
     total_elements = len(sub_field)
-
+    
     if total_elements % base_w_el == 0:
         num_w_el = base_w_el
         num_l_el = total_elements // base_w_el
@@ -123,11 +144,12 @@ def plot_field(axis, training_field, panel_input, object_index, object_index_map
             f"Cannot reshape sub_field of length {total_elements} into 2D grid. "
             f"Check stiffener count or mesh size."
         )
-
+    
     # Create meshgrid
     x = np.linspace(0, width, num_w_el)
     y = np.linspace(0, length, num_l_el)
     X, Y = np.meshgrid(x, y)
     z = sub_field.reshape(num_l_el, num_w_el)
-
-    return axis.contourf(X, Y, z, cmap='RdBu_r')
+    
+    # Plot with optional vmin/vmax
+    return axis.contourf(X, Y, z, cmap='RdBu_r', vmin=vmin, vmax=vmax, levels=levels)

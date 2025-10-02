@@ -5,8 +5,11 @@ LASE MASc Student
 
 # Generic Imports
 import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import argparse
 import numpy as np
+np.set_printoptions(linewidth=200)
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -24,7 +27,7 @@ from sklearn.model_selection import train_test_split
 from scipy.linalg import svd
 
 # Personal Definitions
-from utils.mlp_utilities import MLP
+from utils.mlp_utilities import MLP, NormalizationHandler
 
 from utils.json_utils import (
     load_random_records
@@ -120,63 +123,53 @@ def main():
     expected_snapshot_length = int(len(training_data[max_field_index]))
     snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
-    # Save the original uncentered snapshots
-    original_snapshots_uncentered = [snap.copy() for snap in snapshots]
+    # Save the original snapshots
+    original_snapshots = [snap.copy() for snap in snapshots]
 
-    # Now continue with your existing code
-    snapshots = np.array(snapshots, dtype=np.float32)
+    # After loading and organizing data, convert to MPa
+    snapshots = np.array(snapshots, dtype=np.float32) / 1e6  # Convert Pa to MPa
+    original_snapshots = [snap / 1e6 for snap in original_snapshots]
+
     parameters = np.array(parameters, dtype=np.float32)
 
-    # We want each snapshot to exist in the columns of our space
     snapshots = np.transpose(snapshots)
     parameters = np.transpose(parameters)
 
-    # Centre the data about the mean of each sample across all samples
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Normalize the data
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Normalize parameters
+    param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
+    parameters_norm = param_normalizer.X_norm
+
+    # Center and scale snapshots
     mean_field = np.mean(snapshots, axis=1, keepdims=True)
-    snapshots -= mean_field
+    snapshots_centered = snapshots - mean_field
+    snapshot_normalizer = NormalizationHandler(snapshots_centered, type='std')
+    snapshots_norm = snapshot_normalizer.X_norm
 
-    min_norm_parameters = 0
-    max_norm_parameters = 1
+    # POD
+    U, s, Vt = svd(snapshots_norm, full_matrices=True)
+    U_reduced = U[:, :args.num_modes]
+    modal_coefficients = U_reduced.T @ snapshots_norm
 
-    X_min_parameters = np.min(parameters)
-    X_max_parameters = np.max(parameters)
+    # Normalize coefficients
+    coef_normalizer = NormalizationHandler(modal_coefficients, type='bounds', range=(0, 1))
+    modal_coefficients_norm = coef_normalizer.X_norm
 
-    parameters = min_norm_parameters + ((parameters - X_min_parameters) * (max_norm_parameters - min_norm_parameters) / (X_max_parameters - X_min_parameters))
-
-    # ---------------------------------------------------------------------------------------------------------
-    # PODS
-    U, s, Vt = svd(snapshots, full_matrices=True)
-
-    # ---------------------------------------------------------------------------------------------------------
-    # Energy contribution
-    energy_per_mode = s**2
-    total_energy = np.sum(s**2)
-    relative_energy = energy_per_mode / total_energy
-    cumulative_energy = np.cumsum(relative_energy)
-
-    num_modes = args.num_modes
-
-    U_reduced = U[:,:num_modes]
-    modal_coefficients = U_reduced.T @ snapshots
-
-    min_norm_coefficients = 0
-    max_norm_coefficients = 1
-
-    X_min_coefficients = np.min(modal_coefficients)
-    X_max_coefficients = np.max(modal_coefficients)
-
-    # Normalize the model_coefficents to range [a, b]
-    modal_coefficients = min_norm_coefficients + ((modal_coefficients - X_min_coefficients) * (max_norm_coefficients - min_norm_coefficients) / (X_max_coefficients - X_min_coefficients))
-
-    # Convert numpy.ndarray into Tensor for MLP
-    snapshots = torch.from_numpy(snapshots).float()
-    parameters = torch.from_numpy(parameters).float()
-    modal_coefficients = torch.from_numpy(modal_coefficients).float()
-
-    # Create an MLP object
-    model = MLP(input_size=5, num_layers=args.num_layers, layers_size=args.layer_size, output_size=num_modes)
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Create MLP object
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    model = MLP(input_size=5, num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes)
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Number of parameters: {num_params:,}")
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Convert the data into a torch-compatible format
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Convert to torch
+    parameters_norm = torch.from_numpy(parameters_norm).float()
+    modal_coefficients_norm = torch.from_numpy(modal_coefficients_norm).float()
 
     # Send the training to our GPU if at all available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -186,8 +179,12 @@ def main():
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
+    # Create a tracker for the index of each training and test sample so we can recover for comparison after training
     indices = np.arange(parameters.shape[1])
 
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Create datasets
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Split data AND indices
     X_train, X_test, y_train, y_test, train_indices, test_indices = train_test_split(
         parameters.T, modal_coefficients.T, indices,
@@ -205,7 +202,9 @@ def main():
 
     writer = SummaryWriter()
 
-    # Training using command-line epochs
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Run the training of the model
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
     model.train()
     for epoch in tqdm(range(args.epochs)):
         total_loss = 0
@@ -231,7 +230,9 @@ def main():
 
     writer.flush()
 
-    # Evaluation
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Evaluate the performance of the model
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -248,74 +249,81 @@ def main():
     avg_test_loss = test_loss / len(test_loader)
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    # Visualization
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Visualize the compare the results of the model to the original and POD data
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
     test_sample_idx = 5
-
     test_parameters = X_test[test_sample_idx]
     test_coefficients = y_test[test_sample_idx]
 
-    # Denormalize test_coefficients
-    test_coefficients = X_min_coefficients + (test_coefficients - min_norm_coefficients) * (X_max_coefficients - X_min_coefficients) / (max_norm_coefficients - min_norm_coefficients)
-
-    U_reduced_tensor = torch.from_numpy(U_reduced).float().to(device)
-
     with torch.no_grad():
+        # Get predictions (normalized)
         test_parameters_tensor = test_parameters.unsqueeze(0).to(device)
-        predicted_coefficients = model(test_parameters_tensor) 
-        predicted_coefficients = predicted_coefficients.squeeze(0)
+        predicted_coefficients_norm = model(test_parameters_tensor).squeeze(0).cpu().numpy()
+        
+        # Denormalize coefficients
+        test_coef_denorm = coef_normalizer.denormalize(test_coefficients.cpu().numpy())
+        pred_coef_denorm = coef_normalizer.denormalize(predicted_coefficients_norm)
+        
+        # Reconstruct (scaled space) - using NumPy
+        predicted_snapshot_scaled = U_reduced @ pred_coef_denorm
+        pod_snapshot_scaled = U_reduced @ test_coef_denorm
 
-        # Renormalize the coefficients
-        predicted_coefficients = X_min_coefficients + ((predicted_coefficients - min_norm_coefficients) / (max_norm_coefficients - min_norm_coefficients)) * (X_max_coefficients - X_min_coefficients)
-        predicted_snapshot = U_reduced_tensor @ predicted_coefficients
-        ground_truth_snapshot = U_reduced_tensor @ test_coefficients.to(device)
-
-    predicted_snapshot = predicted_snapshot.cpu().numpy()
-    ground_truth_snapshot = ground_truth_snapshot.cpu().numpy()
-
-    # Denormalize test parameters
-    test_parameters = X_min_parameters + (test_parameters.cpu().numpy() - min_norm_parameters) * (X_max_parameters - X_min_parameters) / (max_norm_parameters - min_norm_parameters)
-
-    # Add the mean back to the predictions
-    predicted_snapshot = predicted_snapshot + mean_field.squeeze()
-    ground_truth_snapshot = ground_truth_snapshot + mean_field.squeeze()
-
-    # Plot comparison: Ground Truth vs MLP Prediction
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
-
-    plot_field(
-        ax1,
-        ground_truth_snapshot,
-        records[0].input,
-        object_index=0,
-        object_index_map=object_index_maps[0]
-    )
-    ax1.set_title("Ground Truth (POD Reconstruction)")
-
-    plot_field(
-        ax2,
-        predicted_snapshot,
-        records[0].input,
-        object_index=0,
-        object_index_map=object_index_maps[0]
-    )
-    ax2.set_title(f"MLP-POD Prediction")
+    # Unscale and add mean back
+    predicted_snapshot = snapshot_normalizer.denormalize(predicted_snapshot_scaled) + mean_field.squeeze()
+    pod_snapshot = snapshot_normalizer.denormalize(pod_snapshot_scaled) + mean_field.squeeze()
 
     # Map test_sample_idx back to the original dataset index
     original_idx = test_indices[test_sample_idx]
 
     # Get the original FEM data for this specific snapshot
-    original_snapshot = original_snapshots_uncentered[original_idx]
+    fem_snapshot = original_snapshots[original_idx]
 
-    # Difference plot
-    difference = ground_truth_snapshot - predicted_snapshot
-    plot_field(
-        ax3,
-        original_snapshot,
+    # Calculate global min and max across all three fields for uniform scale
+    vmin = min(fem_snapshot.min(), pod_snapshot.min(), predicted_snapshot.min())
+    vmax = max(fem_snapshot.max(), pod_snapshot.max(), predicted_snapshot.max())
+
+    # Plot comparison: Ground Truth vs MLP Prediction vs FEM
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+
+    im1 = plot_field(
+        ax1,
+        fem_snapshot,
         records[0].input,
         object_index=0,
-        object_index_map=object_index_maps[0]
+        object_index_map=object_index_maps[0],
+        levels=10,
+        vmin=vmin,
+        vmax=vmax
     )
-    ax3.set_title("FEM Stress Field")
+    ax1.set_title("FEM Stress Field")
+
+    im2 = plot_field(
+        ax2,
+        pod_snapshot,
+        records[0].input,
+        object_index=0,
+        object_index_map=object_index_maps[0],
+        levels=10,
+        vmin=vmin,
+        vmax=vmax
+    )
+    ax2.set_title("Ground Truth (POD Reconstruction)")
+
+    im3 = plot_field(
+        ax3,
+        predicted_snapshot,
+        records[0].input,
+        object_index=0,
+        object_index_map=object_index_maps[0],
+        levels=10,
+        vmin=vmin,
+        vmax=vmax
+    )
+    ax3.set_title(f"MLP-POD Prediction")
+
+    # Add a colorbar (you can choose which image to use, they all have the same scale)
+    # fig.colorbar(im3, ax=[ax1, ax2, ax3], label='Von Mises Stress (Pa)', fraction=0.046, pad=0.04)
 
     for ax in (ax1, ax2, ax3):
         ax.set_xlabel("x (m)")
@@ -337,19 +345,19 @@ def main():
     original_idx = test_indices[test_sample_idx]
 
     # Get the original FEM data for this specific snapshot
-    original_snapshot = original_snapshots_uncentered[original_idx]
+    fem_snapshot = original_snapshots[original_idx]
 
-    side_element_count = int(np.sqrt(len(original_snapshot)))
+    side_element_count = int(np.sqrt(len(fem_snapshot)))
     panel_width_vector = np.linspace(-1.5, 1.5, side_element_count)
 
     # Extract cross-section at row N from all three datasets
-    original_stress = original_snapshot[N*side_element_count: (N + 1)*side_element_count]
-    pod_stress = ground_truth_snapshot[N*side_element_count: (N + 1)*side_element_count]
+    original_stress = fem_snapshot[N*side_element_count: (N + 1)*side_element_count]
+    pod_stress = pod_snapshot[N*side_element_count: (N + 1)*side_element_count]
     predicted_stress = predicted_snapshot[N*side_element_count: (N + 1)*side_element_count]
 
-    ax1.plot(panel_width_vector, original_stress / 1e6, label="fem", lw=0.9)
-    ax1.plot(panel_width_vector, pod_stress / 1e6, label="pod", lw=0.9)
-    ax1.plot(panel_width_vector, predicted_stress / 1e6, label="pod-mlp", lw=0.9)
+    ax1.plot(panel_width_vector, original_stress, label="fem", lw=0.9)
+    ax1.plot(panel_width_vector, pod_stress, label="pod", lw=0.9)
+    ax1.plot(panel_width_vector, predicted_stress, label="pod-mlp", lw=0.9)
 
     ax1.set_title(f"Cross-Section at Row {N} (Original Index: {original_idx})")
     ax1.set_xlabel("Panel Width (m)")
@@ -361,20 +369,6 @@ def main():
     plt.tight_layout()
     plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     if args.save == 1:
         os.makedirs('mlp-models', exist_ok=True)
         torch.save({
@@ -382,7 +376,7 @@ def main():
             'input_size': 5,
             'num_layers': args.num_layers,
             'layer_size': args.layer_size,
-            'output_size': num_modes,
+            'output_size': args.num_modes,
         }, f'mlp-models/model_epoch_{epoch}_{timestamp}.pth')
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import numpy as np
+
 class MLP(nn.Module):
     def __init__(self, input_size, num_layers, layers_size, output_size):
         super(MLP, self).__init__()
@@ -16,3 +18,62 @@ class MLP(nn.Module):
         
         x = self.linears[-1](x)
         return x
+    
+class NormalizationHandler:
+    """
+    Handles normalization and denormalization of data with multiple strategies.
+    """
+    def __init__(self, X, type='std', range=None):
+        """
+        Parameters
+        ----------
+        X : np.ndarray
+            Data to normalize (can be vector or matrix)
+        type : str
+            'std' for standardization or 'bounds' for min-max normalization
+        range : tuple, optional
+            (min, max) for bounds normalization
+        """
+        self.X_original = X.copy()
+        self.type = type
+        self.range = range if range is not None else (0, 1)
+        
+        # Compute statistics
+        self.X_min = np.min(X)
+        self.X_max = np.max(X)
+        
+        if type == 'std':
+            self.mean = np.mean(X, axis=1, keepdims=True)
+            self.std = np.std(X, axis=1, keepdims=True)
+            self.std = np.where(self.std < 1e-10, 1.0, self.std)
+            self._X_norm = (X - self.mean) / self.std
+        elif type == 'bounds':
+            self._X_norm = self.range[0] + ((X - self.X_min) * (self.range[1] - self.range[0]) / (self.X_max - self.X_min))
+        else:
+            raise ValueError(f"Unknown normalization type: {type}")
+    
+    def denormalize(self, X_norm):
+        """Denormalize data back to original scale"""
+        if self.type == 'std':
+            return (X_norm * self.std) + self.mean
+        elif self.type == 'bounds':
+            return ((X_norm - self.range[0]) * (self.X_max - self.X_min) / (self.range[1] - self.range[0])) + self.X_min
+    
+    @property
+    def X_norm(self):
+        """Return normalized data"""
+        return self._X_norm
+    
+    def to_torch(self, device='cpu'):
+        """Convert normalization parameters to torch tensors"""
+        params = {
+            'type': self.type,
+            'X_min': torch.tensor(self.X_min, dtype=torch.float32, device=device),
+            'X_max': torch.tensor(self.X_max, dtype=torch.float32, device=device),
+        }
+        if self.type == 'std':
+            params['mean'] = torch.from_numpy(self.mean).float().to(device)
+            params['std'] = torch.from_numpy(self.std).float().to(device)
+        elif self.type == 'bounds':
+            params['range'] = torch.tensor(self.range, dtype=torch.float32, device=device)
+        return params
