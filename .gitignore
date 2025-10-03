@@ -44,6 +44,7 @@
 *.prt
 *.msg
 *.sta
+events.*
 
 # Data directory #
 ######################

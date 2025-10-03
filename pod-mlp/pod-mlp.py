@@ -139,21 +139,19 @@ def main():
     # Normalize the data
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Normalize parameters
+    # Center snapshots (POD works best with centered data)
+    mean_field = np.mean(snapshots, axis=1, keepdims=True)
+    snapshots_centered = snapshots - mean_field
+
+    # POD on centered (but not scaled) data
+    U, s, Vt = svd(snapshots_centered, full_matrices=True)
+    U_reduced = U[:, :args.num_modes]
+    modal_coefficients = U_reduced.T @ snapshots_centered
+
+    # NOW normalize only the coefficients and parameters
     param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
     parameters_norm = param_normalizer.X_norm
 
-    # Center and scale snapshots
-    mean_field = np.mean(snapshots, axis=1, keepdims=True)
-    snapshots_centered = snapshots - mean_field
-    snapshot_normalizer = NormalizationHandler(snapshots_centered, type='std')
-    snapshots_norm = snapshot_normalizer.X_norm
-
-    # POD
-    U, s, Vt = svd(snapshots_norm, full_matrices=True)
-    U_reduced = U[:, :args.num_modes]
-    modal_coefficients = U_reduced.T @ snapshots_norm
-
-    # Normalize coefficients
     coef_normalizer = NormalizationHandler(modal_coefficients, type='bounds', range=(0, 1))
     modal_coefficients_norm = coef_normalizer.X_norm
 
@@ -168,6 +166,7 @@ def main():
     # Convert the data into a torch-compatible format
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Convert to torch
+    # !!! AFTER THIS POINT, WE MUST REFER TO THE NORMALIZED VERSIONS OF VALUES
     parameters_norm = torch.from_numpy(parameters_norm).float()
     modal_coefficients_norm = torch.from_numpy(modal_coefficients_norm).float()
 
@@ -180,14 +179,14 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Create a tracker for the index of each training and test sample so we can recover for comparison after training
-    indices = np.arange(parameters.shape[1])
+    indices = np.arange(parameters_norm.shape[1])
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Create datasets
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Split data AND indices
     X_train, X_test, y_train, y_test, train_indices, test_indices = train_test_split(
-        parameters.T, modal_coefficients.T, indices,
+        parameters_norm.T, modal_coefficients_norm.T, indices,
         test_size=0.2,
         random_state=42
     )
@@ -252,9 +251,13 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Visualize the compare the results of the model to the original and POD data
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    test_sample_idx = 5
+    test_sample_idx = 6
     test_parameters = X_test[test_sample_idx]
     test_coefficients = y_test[test_sample_idx]
+
+    # Try with the training data, because the training error is SO low
+    test_parameters = X_train[test_sample_idx]
+    test_coefficients = y_train[test_sample_idx]
 
     with torch.no_grad():
         # Get predictions (normalized)
@@ -266,18 +269,16 @@ def main():
         pred_coef_denorm = coef_normalizer.denormalize(predicted_coefficients_norm)
         
         # Reconstruct (scaled space) - using NumPy
-        predicted_snapshot_scaled = U_reduced @ pred_coef_denorm
-        pod_snapshot_scaled = U_reduced @ test_coef_denorm
-
-    # Unscale and add mean back
-    predicted_snapshot = snapshot_normalizer.denormalize(predicted_snapshot_scaled) + mean_field.squeeze()
-    pod_snapshot = snapshot_normalizer.denormalize(pod_snapshot_scaled) + mean_field.squeeze()
+        pod_snapshot = (U_reduced @ test_coef_denorm) + mean_field.squeeze()
+        predicted_snapshot = (U_reduced @ pred_coef_denorm) + mean_field.squeeze()
 
     # Map test_sample_idx back to the original dataset index
     original_idx = test_indices[test_sample_idx]
+    train_idx = train_indices[test_sample_idx]
 
     # Get the original FEM data for this specific snapshot
     fem_snapshot = original_snapshots[original_idx]
+    fem_snapshot = original_snapshots[train_idx]
 
     # Calculate global min and max across all three fields for uniform scale
     vmin = min(fem_snapshot.min(), pod_snapshot.min(), predicted_snapshot.min())
@@ -340,12 +341,6 @@ def main():
     fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 
     N = 54
-
-    # Map test_sample_idx back to the original dataset index
-    original_idx = test_indices[test_sample_idx]
-
-    # Get the original FEM data for this specific snapshot
-    fem_snapshot = original_snapshots[original_idx]
 
     side_element_count = int(np.sqrt(len(fem_snapshot)))
     panel_width_vector = np.linspace(-1.5, 1.5, side_element_count)

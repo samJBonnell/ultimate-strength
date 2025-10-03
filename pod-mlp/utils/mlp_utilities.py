@@ -37,27 +37,43 @@ class NormalizationHandler:
         self.X_original = X.copy()
         self.type = type
         self.range = range if range is not None else (0, 1)
-        
-        # Compute statistics
-        self.X_min = np.min(X)
-        self.X_max = np.max(X)
+
         
         if type == 'std':
             self.mean = np.mean(X, axis=1, keepdims=True)
             self.std = np.std(X, axis=1, keepdims=True)
             self.std = np.where(self.std < 1e-10, 1.0, self.std)
             self._X_norm = (X - self.mean) / self.std
+            self.X_min = np.min(X, axis=1, keepdims=True)
+            self.X_max = np.max(X, axis=1, keepdims=True)
+            
         elif type == 'bounds':
+            self.X_min = np.min(X, axis=1, keepdims=True)
+            self.X_max = np.max(X, axis=1, keepdims=True)
             self._X_norm = self.range[0] + ((X - self.X_min) * (self.range[1] - self.range[0]) / (self.X_max - self.X_min))
+            self.mean = None
+            self.std = None
+            
         else:
             raise ValueError(f"Unknown normalization type: {type}")
     
     def denormalize(self, X_norm):
         """Denormalize data back to original scale"""
+        # Handle 1D input by reshaping to column vector
+        original_shape = X_norm.shape
+        if X_norm.ndim == 1:
+            X_norm = X_norm.reshape(-1, 1)
+        
         if self.type == 'std':
-            return (X_norm * self.std) + self.mean
+            result = (X_norm * self.std) + self.mean
         elif self.type == 'bounds':
-            return ((X_norm - self.range[0]) * (self.X_max - self.X_min) / (self.range[1] - self.range[0])) + self.X_min
+            result = ((X_norm - self.range[0]) * (self.X_max - self.X_min) / (self.range[1] - self.range[0])) + self.X_min
+        
+        # Return in original shape
+        if len(original_shape) == 1:
+            result = result.flatten()
+        
+        return result
     
     @property
     def X_norm(self):
