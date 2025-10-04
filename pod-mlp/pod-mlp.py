@@ -152,13 +152,13 @@ def main():
     param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
     parameters_norm = param_normalizer.X_norm
 
-    coef_normalizer = NormalizationHandler(modal_coefficients, type='bounds', range=(0, 1))
+    coef_normalizer = NormalizationHandler(modal_coefficients, type='std')
     modal_coefficients_norm = coef_normalizer.X_norm
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Create MLP object
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    model = MLP(input_size=5, num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes)
+    model = MLP(input_size=5, num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.15)
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Number of parameters: {num_params:,}")
 
@@ -176,7 +176,8 @@ def main():
 
     # Define the loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Create a tracker for the index of each training and test sample so we can recover for comparison after training
     indices = np.arange(parameters_norm.shape[1])
@@ -204,6 +205,15 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Run the training of the model
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    singular_values = s[:args.num_modes]
+    mode_weights = torch.from_numpy(singular_values / singular_values.sum()).float().to(device)
+
+    def weighted_mse_loss(predictions, targets, weights):
+        """MSE loss weighted by POD mode importance"""
+        squared_errors = (predictions - targets) ** 2
+        weighted_errors = squared_errors * weights.unsqueeze(0)
+        return weighted_errors.mean()
+
     model.train()
     for epoch in tqdm(range(args.epochs)):
         total_loss = 0
@@ -214,7 +224,8 @@ def main():
            
             # Forward pass
             outputs = model(input)
-            loss = criterion(outputs, labels)
+            # loss = criterion(outputs, labels)
+            loss = weighted_mse_loss(outputs, labels, mode_weights)
            
             # Backward and optimize
             optimizer.zero_grad()
@@ -241,7 +252,8 @@ def main():
            
             # Forward pass
             outputs = model(input)
-            loss = criterion(outputs, labels)
+            # loss = criterion(outputs, labels)
+            loss = weighted_mse_loss(outputs, labels, mode_weights)
             
             test_loss += loss.item()
 
@@ -251,13 +263,9 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Visualize the compare the results of the model to the original and POD data
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    test_sample_idx = 6
+    test_sample_idx = 10
     test_parameters = X_test[test_sample_idx]
     test_coefficients = y_test[test_sample_idx]
-
-    # Try with the training data, because the training error is SO low
-    test_parameters = X_train[test_sample_idx]
-    test_coefficients = y_train[test_sample_idx]
 
     with torch.no_grad():
         # Get predictions (normalized)
@@ -274,15 +282,34 @@ def main():
 
     # Map test_sample_idx back to the original dataset index
     original_idx = test_indices[test_sample_idx]
-    train_idx = train_indices[test_sample_idx]
 
     # Get the original FEM data for this specific snapshot
     fem_snapshot = original_snapshots[original_idx]
-    fem_snapshot = original_snapshots[train_idx]
 
     # Calculate global min and max across all three fields for uniform scale
     vmin = min(fem_snapshot.min(), pod_snapshot.min(), predicted_snapshot.min())
     vmax = max(fem_snapshot.max(), pod_snapshot.max(), predicted_snapshot.max())
+
+    # After POD, check reconstruction error
+    pod_error = np.mean([np.linalg.norm(snapshots[:, i] - (U_reduced @ modal_coefficients[:, i] + mean_field.squeeze())) 
+                        for i in range(snapshots.shape[1])])
+    print(f"Average POD reconstruction error: {pod_error:.4f} MPa")
+
+    # After the prediction section
+    print("\nCoefficient Comparison:")
+    print("Mode | True (norm) | Pred (norm) | True (denorm) | Pred (denorm)")
+    print("-" * 70)
+    for i in range(args.num_modes):
+        true_norm = test_coefficients[i].item()
+        pred_norm = predicted_coefficients_norm[i]
+        true_denorm = test_coef_denorm[i]
+        pred_denorm = pred_coef_denorm[i]
+        print(f"{i:4d} | {true_norm:11.4f} | {pred_norm:11.4f} | {true_denorm:13.4f} | {pred_denorm:13.4f}")
+
+    # Calculate per-coefficient error
+    coef_errors = np.abs(test_coef_denorm - pred_coef_denorm)
+    print(f"\nCoefficient-wise MAE: {coef_errors.mean():.4f}")
+    print(f"Max coefficient error: {coef_errors.max():.4f} (mode {coef_errors.argmax()})")
 
     # Plot comparison: Ground Truth vs MLP Prediction vs FEM
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))

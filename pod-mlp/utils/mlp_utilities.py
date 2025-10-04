@@ -4,19 +4,24 @@ import torch.nn as nn
 import numpy as np
 
 class MLP(nn.Module):
-    def __init__(self, input_size, num_layers, layers_size, output_size):
+    def __init__(self, input_size, num_layers, layers_size, output_size, dropout=0.1):
         super(MLP, self).__init__()
         self.num_layers = num_layers
+        self.dropout = nn.Dropout(dropout)
         
-        self.linears = nn.ModuleList([nn.Linear(input_size, layers_size)])
-        self.linears.extend([nn.Linear(layers_size, layers_size) for i in range(1, self.num_layers-1)])
-        self.linears.append(nn.Linear(layers_size, output_size))
+        self.activation = nn.ReLU()
+        # self.activation = nn.Tanh()
+        # self.activation = nn.SiLU()
+        
+        self.layers = nn.ModuleList([nn.Linear(input_size, layers_size)])
+        self.layers.extend([nn.Linear(layers_size, layers_size) for i in range(1, self.num_layers-1)])
+        self.layers.append(nn.Linear(layers_size, output_size))
     
     def forward(self, x):
-        for i in range(len(self.linears) - 1):
-            x = torch.relu(self.linears[i](x))
-        
-        x = self.linears[-1](x)
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
+            x = self.dropout(x)
+        x = self.layers[-1](x)
         return x
     
 class NormalizationHandler:
