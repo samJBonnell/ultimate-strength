@@ -98,12 +98,9 @@ def main():
 
     parameters = np.array(parameters)
 
-    # Define parameter names that match your 5 variables
     parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
     print(f"Parameters shape: {parameters.shape}")
     print(f"Parameter names: {parameter_names}")
-
-    # Organize the stress data into a format that can be easily read by the PODs algorithm
 
     max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
     template_stress_field = np.zeros((int(sum(max_field_indices))))
@@ -123,10 +120,8 @@ def main():
     expected_snapshot_length = int(len(training_data[max_field_index]))
     snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
 
-    # Save the original snapshots
     original_snapshots = [snap.copy() for snap in snapshots]
 
-    # After loading and organizing data, convert to MPa
     snapshots = np.array(snapshots, dtype=np.float32) / 1e6  # Convert Pa to MPa
     original_snapshots = [snap / 1e6 for snap in original_snapshots]
 
@@ -139,16 +134,13 @@ def main():
     # Normalize the data
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Normalize parameters
-    # Center snapshots (POD works best with centered data)
     mean_field = np.mean(snapshots, axis=1, keepdims=True)
     snapshots_centered = snapshots - mean_field
 
-    # POD on centered (but not scaled) data
     U, s, Vt = svd(snapshots_centered, full_matrices=True)
     U_reduced = U[:, :args.num_modes]
     modal_coefficients = U_reduced.T @ snapshots_centered
 
-    # NOW normalize only the coefficients and parameters
     param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
     parameters_norm = param_normalizer.X_norm
 
@@ -165,7 +157,6 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Convert the data into a torch-compatible format
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Convert to torch
     # !!! AFTER THIS POINT, WE MUST REFER TO THE NORMALIZED VERSIONS OF VALUES
     parameters_norm = torch.from_numpy(parameters_norm).float()
     modal_coefficients_norm = torch.from_numpy(modal_coefficients_norm).float()
@@ -268,7 +259,6 @@ def main():
     test_coefficients = y_test[test_sample_idx]
 
     with torch.no_grad():
-        # Get predictions (normalized)
         test_parameters_tensor = test_parameters.unsqueeze(0).to(device)
         predicted_coefficients_norm = model(test_parameters_tensor).squeeze(0).cpu().numpy()
         
@@ -276,7 +266,6 @@ def main():
         test_coef_denorm = coef_normalizer.denormalize(test_coefficients.cpu().numpy())
         pred_coef_denorm = coef_normalizer.denormalize(predicted_coefficients_norm)
         
-        # Reconstruct (scaled space) - using NumPy
         pod_snapshot = (U_reduced @ test_coef_denorm) + mean_field.squeeze()
         predicted_snapshot = (U_reduced @ pred_coef_denorm) + mean_field.squeeze()
 
@@ -286,7 +275,6 @@ def main():
     # Get the original FEM data for this specific snapshot
     fem_snapshot = original_snapshots[original_idx]
 
-    # Calculate global min and max across all three fields for uniform scale
     vmin = min(fem_snapshot.min(), pod_snapshot.min(), predicted_snapshot.min())
     vmax = max(fem_snapshot.max(), pod_snapshot.max(), predicted_snapshot.max())
 
@@ -350,7 +338,6 @@ def main():
     )
     ax3.set_title(f"MLP-POD Prediction")
 
-    # Add a colorbar (you can choose which image to use, they all have the same scale)
     # fig.colorbar(im3, ax=[ax1, ax2, ax3], label='Von Mises Stress (Pa)', fraction=0.046, pad=0.04)
 
     for ax in (ax1, ax2, ax3):
