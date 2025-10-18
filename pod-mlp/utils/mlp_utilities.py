@@ -42,7 +42,6 @@ class NormalizationHandler:
         self.X_original = X.copy()
         self.type = type
         self.range = range if range is not None else (0, 1)
-
         
         if type == 'std':
             self.mean = np.mean(X, axis=1, keepdims=True)

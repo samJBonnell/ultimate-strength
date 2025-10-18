@@ -88,7 +88,7 @@ def main():
     parameters = []
     for rec in records:
         row = [
-            rec.input.t_panel,                    
+            # rec.input.t_panel,                    
             rec.input.pressure_location[0],       
             rec.input.pressure_location[1],       
             rec.input.pressure_patch_size[0],     
@@ -99,8 +99,10 @@ def main():
     parameters = np.array(parameters)
 
     parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
-    print(f"Parameters shape: {parameters.shape}")
-    print(f"Parameter names: {parameter_names}")
+    parameter_names = ["pressure_x", "pressure_y", "patch_width", "patch_height"]
+
+    # print(f"Parameters shape: {parameters.shape}")
+    # print(f"Parameter names: {parameter_names}")
 
     max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
     template_stress_field = np.zeros((int(sum(max_field_indices))))
@@ -111,8 +113,8 @@ def main():
         field, index_map = training_data_constructor(
             stress_vectors[i],
             template_stress_field,
-            max_field_indices,
-            element_indices[i]
+            max_field_indices, # type: ignore
+            element_indices[i] # type: ignore
         )
         training_data.append(field)
         object_index_maps.append(index_map)
@@ -150,9 +152,9 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Create MLP object
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    model = MLP(input_size=5, num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.15)
+    model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.15)
     num_params = sum(p.numel() for p in model.parameters())
-    print(f"Number of parameters: {num_params:,}")
+    print(f"\nNumber of parameters: {num_params:,}\n")
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Convert the data into a torch-compatible format
@@ -249,12 +251,12 @@ def main():
             test_loss += loss.item()
 
     avg_test_loss = test_loss / len(test_loader)
-    print(f"Test Loss: {avg_test_loss:.4f}")
+    print(f"\nTest Loss: {avg_test_loss:.4f}")
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Visualize the compare the results of the model to the original and POD data
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    test_sample_idx = 10
+    test_sample_idx = 9
     test_parameters = X_test[test_sample_idx]
     test_coefficients = y_test[test_sample_idx]
 
@@ -354,7 +356,7 @@ def main():
 
     fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 
-    N = 54
+    N = 80
 
     side_element_count = int(np.sqrt(len(fem_snapshot)))
     panel_width_vector = np.linspace(-1.5, 1.5, side_element_count)
@@ -372,6 +374,8 @@ def main():
     ax1.set_xlabel("Panel Width (m)")
     ax1.set_ylabel("Stress (MPa)")
     plt.legend(title="data set", fontsize='small', fancybox=True, title_fontsize=7, loc='best')
+
+    print("\n")
 
     # plt.grid(True, which="both", ls="-", color='0.95')
 
