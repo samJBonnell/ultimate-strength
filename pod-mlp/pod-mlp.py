@@ -5,6 +5,7 @@ LASE MASc Student
 
 # Generic Imports
 import os
+import string
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 import argparse
@@ -58,6 +59,8 @@ def parse_args():
                         help='Save (default: 0)')
     parser.add_argument('--num_modes', type=int, default=10,
                         help='Number of POD modes (default: 10)')
+    parser.add_argument('--path', type=str, default='data/',
+                        help='Path to trial data relative to pod-mlp.py')
     
     return parser.parse_args()
 
@@ -66,6 +69,8 @@ def main():
 
     # Parse command line arguments
     args = parse_args()
+
+    print(f"Training Path: {args.path}\n")
     
     print(f"Training with configuration:")
     print(f"  - Number of layers: {args.num_layers}")
@@ -73,12 +78,15 @@ def main():
     print(f"  - Epochs: {args.epochs}")
     print(f"  - Batch size: {args.batch_size}")
     print(f"  - Learning rate: {args.learning_rate}")
-    print()
     
     # Define input and output data locations
-    input_path = Path("data/input.jsonl")
-    output_path = Path("data/output.jsonl")
+    input_path = Path(f"{args.path}/input.jsonl")
+    output_path = Path(f"{args.path}/output.jsonl")
 
+    if not input_path.exists() or not output_path.exists():
+        print(f"\nInput or output path does not exist\nExiting")
+        return
+    
     # Load data records
     records = load_random_records(input_path, output_path, n=250)
     stress_vectors = extract_von_mises_stress(records)
