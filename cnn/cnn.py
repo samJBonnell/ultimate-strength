@@ -107,12 +107,10 @@ def main():
 
     stress_matrix = np.zeros((len(stress_vectors), int(np.sqrt(len(stress_vectors[0]))), int(np.sqrt(len(stress_vectors[0])))))
     
-
     # Need to create a patterning for the CNN interface
     # Currently, we have rows and columns that correspond to the size of input of the CNN
     # The snapshots are N x n vectors, parameters are d x 1 vectors. We need to create a 
-    # sqrt(N) x sqrt(N) x n block for snapshots and a sqrt(N) x sqrt(N) x d input for each n_i
-    # example.
+    # sqrt(N) x sqrt(N) x n block for snapshots and a sqrt(N) x sqrt(N) x d input for each n_i example.
 
 if __name__ == '__main__':
     main()
