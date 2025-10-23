@@ -105,10 +105,8 @@ def main():
     # parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
     parameter_names = ["pressure_x", "pressure_y", "patch_width", "patch_height"]
 
-    max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
-    template_stress_field = np.zeros((int(sum(max_field_indices))))
-
-    print(f"{len(stress_vectors)}, {len(stress_vectors[0])}")
+    stress_matrix = np.zeros((len(stress_vectors), int(np.sqrt(len(stress_vectors[0]))), int(np.sqrt(len(stress_vectors[0])))))
+    
 
     # Need to create a patterning for the CNN interface
     # Currently, we have rows and columns that correspond to the size of input of the CNN
