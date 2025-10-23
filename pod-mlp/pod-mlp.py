@@ -151,7 +151,10 @@ def main():
     U_reduced = U[:, :args.num_modes]
     modal_coefficients = U_reduced.T @ snapshots_centered
 
-    param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
+    # param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
+    # parameters_norm = param_normalizer.X_norm
+
+    param_normalizer = NormalizationHandler(parameters, type='std')
     parameters_norm = param_normalizer.X_norm
 
     coef_normalizer = NormalizationHandler(modal_coefficients, type='std')
@@ -160,7 +163,7 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Create MLP object
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.15)
+    model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.05)
     num_params = sum(p.numel() for p in model.parameters())
     print(f"\nNumber of parameters: {num_params:,}\n")
 
@@ -383,8 +386,6 @@ def main():
     ax1.set_ylabel("Stress (MPa)")
     plt.legend(title="data set", fontsize='small', fancybox=True, title_fontsize=7, loc='best')
 
-    print("\n")
-
     # plt.grid(True, which="both", ls="-", color='0.95')
 
     plt.tight_layout()
@@ -394,7 +395,7 @@ def main():
         os.makedirs('mlp-models', exist_ok=True)
         torch.save({
             'model_state_dict': model.state_dict(),
-            'input_size': 5,
+            'input_size': len(parameter_names),
             'num_layers': args.num_layers,
             'layer_size': args.layer_size,
             'output_size': args.num_modes,

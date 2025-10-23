@@ -71,6 +71,7 @@ class NormalizationHandler:
     
     def denormalize(self, X_norm):
         """Denormalize data back to original scale"""
+        # Handle 1D input by reshaping to column vector
         original_shape = X_norm.shape
         if X_norm.ndim == 1:
             X_norm = X_norm.reshape(-1, 1)
@@ -80,6 +81,7 @@ class NormalizationHandler:
         elif self.type == 'bounds':
             result = ((X_norm - self.range[0]) * (self.X_max - self.X_min) / (self.range[1] - self.range[0])) + self.X_min
         
+        # Return in original shape
         if len(original_shape) == 1:
             result = result.flatten()
         

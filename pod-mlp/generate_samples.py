@@ -14,12 +14,12 @@ bounds = np.array([
     [0.005, 0.075],    # plate thickness
 
     # Pressure Location
-    [-1.35, 1.35],  # x-axis pressure location
-    [-1.35, 1.35],  # y-axis pressure location
+    [-1.34, 1.34],  # x-axis pressure location
+    [-1.34, 1.34],  # y-axis pressure location
 
     # Pressure patch size
-    [0.015, 0.125],
-    [0.015, 0.125]
+    [0.10, 0.25],
+    [0.10, 0.25]
 ])
 
 # Generate Latin Hypercube Samples
