@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from tqdm import tqdm
+from torchinfo import summary
 
 # ML Imports
 import torch
@@ -28,18 +29,12 @@ from sklearn.model_selection import train_test_split
 from scipy.linalg import svd
 
 # Personal Definitions
-from utils.mlp_utilities import MLP, NormalizationHandler
+from utils.mlp_utilities import MLP, weighted_mse_loss
+from utils.normalization_utilities import NormalizationHandler
+from utils.json_utils import load_records
+from utils.pod_utilities import training_data_constructor, plot_field
+from utils.data_utilities import extract_attributes
 
-from utils.json_utils import (
-    load_random_records
-)
-
-from utils.pod_utilities import (
-    extract_von_mises_stress,
-    filter_valid_snapshots,
-    training_data_constructor,
-    plot_field,
-)
 
 def parse_args():
     """Parse command line arguments"""
@@ -59,7 +54,7 @@ def parse_args():
                         help='Save (default: 0)')
     parser.add_argument('--num_modes', type=int, default=10,
                         help='Number of POD modes (default: 10)')
-    parser.add_argument('--path', type=str, default='data/',
+    parser.add_argument('--path', type=str, default='data/non-var-thickness',
                         help='Path to trial data relative to pod-mlp.py')
     
     return parser.parse_args()
@@ -88,8 +83,8 @@ def main():
         return
     
     # Load data records
-    records = load_random_records(input_path, output_path, n=250)
-    stress_vectors = extract_von_mises_stress(records)
+    records = load_records(input_path, output_path)
+    stress_vectors = extract_attributes(records, attributes= ['vm'])['vm']
     element_indices = [r.output.element_counts for r in records]
 
     # Extract parameters
@@ -104,120 +99,99 @@ def main():
         ]
         parameters.append(row)
 
-    parameters = np.array(parameters)
+    num_samples = len(parameters)
+    num_features = len(parameters[0])
 
     parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
     parameter_names = ["pressure_x", "pressure_y", "patch_width", "patch_height"]
 
-    # print(f"Parameters shape: {parameters.shape}")
-    # print(f"Parameter names: {parameter_names}")
-
     max_field_index, max_field_indices = max(enumerate(element_indices), key=lambda x: sum(x[1]))
     template_stress_field = np.zeros((int(sum(max_field_indices))))
 
-    training_data = []
+    stress_fields = []
     object_index_maps = []
     for i in range(len(stress_vectors)):
         field, index_map = training_data_constructor(
             stress_vectors[i],
             template_stress_field,
-            max_field_indices, # type: ignore
-            element_indices[i] # type: ignore
+            max_field_indices,
+            element_indices[i]
         )
-        training_data.append(field)
+        stress_fields.append(field)
         object_index_maps.append(index_map)
 
-    expected_snapshot_length = int(len(training_data[max_field_index]))
-    snapshots, parameters = filter_valid_snapshots(training_data, parameters, expected_snapshot_length)
+    expected_snapshot_length = int(len(stress_fields[max_field_index]))
+    # X, y = filter_valid_snapshots(stress_fields, parameters, expected_snapshot_length)
 
-    original_snapshots = [snap.copy() for snap in snapshots]
+    X = np.array(parameters, dtype=np.float32)
+    stress_fields = np.array(stress_fields, dtype=np.float32) / 1e6 # Convert Pa to MPa
 
-    snapshots = np.array(snapshots, dtype=np.float32) / 1e6  # Convert Pa to MPa
-    original_snapshots = [snap / 1e6 for snap in original_snapshots]
+    # Center the stress fields
+    mean_field = np.mean(stress_fields, axis=1, keepdims=True)
+    stress_fields = stress_fields - mean_field
 
-    parameters = np.array(parameters, dtype=np.float32)
-
-    snapshots = np.transpose(snapshots)
-    parameters = np.transpose(parameters)
-
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Normalize the data
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Normalize parameters
-    mean_field = np.mean(snapshots, axis=1, keepdims=True)
-    snapshots_centered = snapshots - mean_field
-
-    U, s, Vt = svd(snapshots_centered, full_matrices=True)
+    # Perform SVD on the stress fields set to compute the major modes
+    U, s, Vt = svd(stress_fields.T, full_matrices=True)
     U_reduced = U[:, :args.num_modes]
-    modal_coefficients = U_reduced.T @ snapshots_centered
+    y = U_reduced.T @ stress_fields.T
 
-    # param_normalizer = NormalizationHandler(parameters, type='bounds', range=(0, 1))
-    # parameters_norm = param_normalizer.X_norm
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Break the data into training and test sets
+    # -------------------------------------------------------------------------------------------------------------------------
+    indices = np.arange(X.shape[0])
+    X_train, X_test, y_train, y_test, train_indicies, test_indicies = train_test_split(
+        X, y, indices, 
+        test_size = 0.2,
+        random_state=None
+    )
 
-    param_normalizer = NormalizationHandler(parameters, type='std')
-    parameters_norm = param_normalizer.X_norm
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Normalize the data !AFTER! we split the data
+    # -------------------------------------------------------------------------------------------------------------------------
 
-    coef_normalizer = NormalizationHandler(modal_coefficients, type='std')
-    modal_coefficients_norm = coef_normalizer.X_norm
+    X_normalizer = NormalizationHandler(X_train, method = 'std', excluded_axis=[1])
+    y_normalizer = NormalizationHandler(y_train, method = 'std', excluded_axis=[1, 2])
 
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # We need to noramlize the y_train and then normalize the y_test with the same values
+    X_test = X_normalizer.normalize(X_test)
+    y_test = y_normalizer.normalize(y_test)
+
+    X_train = torch.from_numpy(X_train).float()
+    y_train = torch.from_numpy(y_train).float()
+
+    X_test = torch.from_numpy(X_test).float()
+    y_test = torch.from_numpy(y_test).float()
+
+    train_dataset = TensorDataset(X_train, y_train)
+    test_dataset = TensorDataset(X_test, y_test)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Define the optimizer and the loss function
+    # -------------------------------------------------------------------------------------------------------------------------    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
+
+    singular_values = s[:args.num_modes]
+    mode_weights = torch.from_numpy(singular_values / singular_values.sum()).float().to(device)
+    # -------------------------------------------------------------------------------------------------------------------------
     # Create MLP object
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.05)
     num_params = sum(p.numel() for p in model.parameters())
     print(f"\nNumber of parameters: {num_params:,}\n")
-
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Convert the data into a torch-compatible format
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # !!! AFTER THIS POINT, WE MUST REFER TO THE NORMALIZED VERSIONS OF VALUES
-    parameters_norm = torch.from_numpy(parameters_norm).float()
-    modal_coefficients_norm = torch.from_numpy(modal_coefficients_norm).float()
 
     # Send the training to our GPU if at all available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
-    # Define the loss function and optimizer
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-
-    # Create a tracker for the index of each training and test sample so we can recover for comparison after training
-    indices = np.arange(parameters_norm.shape[1])
-
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Create datasets
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Split data AND indices
-    X_train, X_test, y_train, y_test, train_indices, test_indices = train_test_split(
-        parameters_norm.T, modal_coefficients_norm.T, indices,
-        test_size=0.2,
-        random_state=42
-    )
-
-    # Create datasets
-    train_dataset = TensorDataset(X_train, y_train)
-    test_dataset = TensorDataset(X_test, y_test)
-
-    # Create dataloaders using command-line batch_size
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
+    summary(model, input_size=(1, 4, 80, 80))
     writer = SummaryWriter()
-
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
     # Run the training of the model
     # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    singular_values = s[:args.num_modes]
-    mode_weights = torch.from_numpy(singular_values / singular_values.sum()).float().to(device)
-
-    def weighted_mse_loss(predictions, targets, weights):
-        """MSE loss weighted by POD mode importance"""
-        squared_errors = (predictions - targets) ** 2
-        weighted_errors = squared_errors * weights.unsqueeze(0)
-        return weighted_errors.mean()
-
     model.train()
     for epoch in tqdm(range(args.epochs)):
         total_loss = 0
@@ -244,9 +218,9 @@ def main():
 
     writer.flush()
 
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     # Evaluate the performance of the model
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -264,9 +238,9 @@ def main():
     avg_test_loss = test_loss / len(test_loader)
     print(f"\nTest Loss: {avg_test_loss:.4f}")
 
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     # Visualize the compare the results of the model to the original and POD data
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     test_sample_idx = 9
     test_parameters = X_test[test_sample_idx]
     test_coefficients = y_test[test_sample_idx]

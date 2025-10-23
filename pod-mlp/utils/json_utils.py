@@ -72,6 +72,19 @@ def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set
                 print(f"Warning: Skipping invalid output record: {e}")
                 continue
 
+def load_records(input_path: Path, output_path: Path) -> List[Record]:
+    """
+    Load all records from input and output files.
+    
+    Args:
+        input_path: Path to input JSONL file
+        output_path: Path to output JSONL file
+        
+    Returns:
+        List of Record objects
+    """
+    return list(stream_records(input_path, output_path))
+
 def load_random_records(input_path: Path, output_path: Path, n: int) -> List[Record]:
     """
     Load n random records from input and output files.
