@@ -1,6 +1,5 @@
 import numpy as np
 from typing import List, Dict, Tuple
-from ezyrb import POD, RBF, Database, ReducedOrderModel as ROM
 
 from utils.data_utilities import slice_single_stress_vector
 
@@ -47,19 +46,6 @@ def filter_valid_snapshots(
 ) -> Tuple[List[np.ndarray], np.ndarray]:
     valid_indices = [i for i, s in enumerate(snapshots) if len(s) == expected_length]
     return [snapshots[i] for i in valid_indices], parameters[valid_indices]
-
-def create_ROM(parameters: np.ndarray, snapshots: List[np.ndarray]):
-    snapshots = np.array(snapshots)
-    parameters = np.array(parameters)
-
-    db = Database(parameters, snapshots)
-    pod = POD('svd')
-    rbf = RBF()
-
-    rom = ROM(db, pod, rbf)
-    rom.fit()
-
-    return db, rom, pod, rbf
 
 def plot_field(axis, training_field, panel_input, object_index, object_index_map, levels = 20, vmin=None, vmax=None):
     """

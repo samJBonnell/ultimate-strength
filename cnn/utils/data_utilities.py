@@ -1,11 +1,20 @@
 import numpy as np
-from typing import List, Dict, Tuple
-from ezyrb import POD, RBF, Database, ReducedOrderModel as ROM
+from typing import List
 
 from utils.json_utils import Record
 
 def extract_von_mises_stress(records: List[Record], step = 'Step-1') -> List[List[float]]:
     return [[s.attributes['stress'].vm for s in r.output.elements_by_step[step]] for r in records]
+
+def extract_attributes(records: List[Record], step = 'Step-1', attributes = ['vm']):
+    extracted_data = {}
+    for attribute in attributes:
+        if attribute == 'vm':
+            data = [[s.attributes['stress'].vm for s in r.output.elements_by_step[step]] for r in records]
+        else:
+            raise ValueError(f"Unknown attribute type: {attribute}")
+        extracted_data[attribute] = data
+    return extracted_data
 
 def extract_input_features(records: List[Record], feature_names: List[str]) -> np.ndarray:
     return np.array([

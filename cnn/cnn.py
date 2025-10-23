@@ -6,6 +6,8 @@ LASE MASc Student
 # Generic Imports
 import os
 import string
+
+import torch.optim.adam
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 import argparse
@@ -23,23 +25,25 @@ import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchinfo import summary
 
 from sklearn.model_selection import train_test_split
-from scipy.linalg import svd
 
 # Personal Definitions
-from utils.mlp_utilities import MLP, NormalizationHandler
+from utils.normalization_utilities import NormalizationHandler
 
 from utils.json_utils import (
-    load_random_records
+    load_records
 )
 
 from utils.data_utilities import (
-    extract_von_mises_stress
+    extract_attributes,
     # filter_valid_snapshots,
     # training_data_constructor,
     # plot_field,
 )
+
+from utils.cnn_utilities import EncoderBlock, DecoderBlock, Bridge, EncoderDecoderNetwork
 
 def parse_args():
     """Parse command line arguments"""
@@ -84,9 +88,8 @@ def main():
         return
     
     # Load data records
-    records = load_random_records(input_path, output_path, n=250)
-    stress_vectors = extract_von_mises_stress(records)
-    element_indices = [r.output.element_counts for r in records]
+    records = load_records(input_path, output_path)
+    stress_vectors = extract_attributes(records, attributes= ['vm'])['vm']
 
     # Extract parameters
     parameters = []
@@ -100,17 +103,121 @@ def main():
         ]
         parameters.append(row)
 
-    parameters = np.array(parameters)
-
+    num_samples = len(parameters)
+    num_features = len(parameters[0])
     # parameter_names = ["t_panel", "pressure_x", "pressure_y", "patch_width", "patch_height"]
     parameter_names = ["pressure_x", "pressure_y", "patch_width", "patch_height"]
-
-    stress_matrix = np.zeros((len(stress_vectors), int(np.sqrt(len(stress_vectors[0]))), int(np.sqrt(len(stress_vectors[0])))))
     
+    # Data input!
+    input_matrix_size = int(np.sqrt(len(stress_vectors[0])))
+    y = np.zeros((len(stress_vectors), input_matrix_size, input_matrix_size))
+    for i, vector in enumerate(stress_vectors):
+        np_vector = np.array(vector)
+        y[i, :, :] = np_vector.reshape((input_matrix_size, input_matrix_size))
     # Need to create a patterning for the CNN interface
     # Currently, we have rows and columns that correspond to the size of input of the CNN
     # The snapshots are N x n vectors, parameters are d x 1 vectors. We need to create a 
     # sqrt(N) x sqrt(N) x n block for snapshots and a sqrt(N) x sqrt(N) x d input for each n_i example.
+
+    # Create the n x d x N_i x N_i parameter input space:
+    input_convolution_size = 80
+    template_convolution = np.ones(shape=(input_convolution_size, input_convolution_size), dtype=float)
+    X = np.ndarray(shape=(num_samples, num_features, input_convolution_size, input_convolution_size))
+
+    for i, parameter_set in enumerate(parameters):
+        # For each of the features, create an N_i x N_i input matrix that we set as the value of each feature across the entire matrix
+        for j, value in enumerate(parameter_set):
+            X[i, j, :, :] = (template_convolution.copy()) * value
+
+    indices = np.arange(X.shape[0])
+    # Create training and testing splits
+    X_train, X_test, y_train, y_test, train_indicies, test_indicies = train_test_split(
+        X, y, indices, 
+        test_size = 0.2,
+        random_state=None
+    )
+
+    # Normalization!
+    # We need to normalize the X_train and then normalize the X_test with the same values
+    X_normalizer = NormalizationHandler(X_train, method = 'std', excluded_axis=[1])
+    y_normalizer = NormalizationHandler(y_train, method = 'std', excluded_axis=[1, 2])
+
+    # We need to noramlize the y_train and then normalize the y_test with the same values
+    X_test = X_normalizer.normalize(X_test)
+    y_test = y_normalizer.normalize(y_test)
+
+    # We can now train a network!
+    model = EncoderDecoderNetwork(input_channels=num_features, output_channels = 1)
+    num_params = sum(p.numel() for p in model.parameters())
+    print(f"\nNumber of parameters: {num_params:,}\n")
+
+    summary(model, input_size=(1, 4, 80, 80))
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Convert the data into a torch-compatible format
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+    X_train = torch.from_numpy(X_train).float()
+    y_train = torch.from_numpy(y_train).float()
+
+    X_test = torch.from_numpy(X_test).float()
+    y_test = torch.from_numpy(y_test).float()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
+
+    train_dataset = TensorDataset(X_train, y_train)
+    test_dataset = TensorDataset(X_test, y_test)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+    writer = SummaryWriter()
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Run the training of the model
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    model.train()
+    for epoch in tqdm(range(args.epochs)):
+        total_loss = 0
+
+        for input, labels in train_loader:
+            input = input.to(device)
+            labels = labels.to(device)
+
+            outputs = model(input)
+            outputs = outputs.squeeze(1)
+            loss = criterion(outputs, labels)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        avg_epoch_loss = total_loss / len(train_loader)
+        writer.add_scalar('Loss/Train', avg_epoch_loss, epoch)
+
+    writer.flush()
+    
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Evaluate the performance of the model
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    model.eval()
+    test_loss = 0
+    with torch.no_grad():
+        for input, labels in test_loader:
+            input = input.to(device)
+            labels = labels.to(device)
+
+            outputs = model(input)
+            outputs = outputs.squeeze(1)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
+
+    avg_test_loss = test_loss / len(test_loader)
+    print(f"\nTest Error: {avg_test_loss:.4f}")
+
 
 if __name__ == '__main__':
     main()
