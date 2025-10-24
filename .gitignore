@@ -52,7 +52,7 @@ events.*
 ######################
 data\
 mlp-models\
-runs\
+*\runs\
 abq_working\
 
 # Files to exlude #
@@ -61,6 +61,7 @@ tree.txt
 *.rpy
 *.rec
 *.log
+*.svg
 
 # OS generated files #
 ######################
