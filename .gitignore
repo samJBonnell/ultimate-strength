@@ -9,7 +9,6 @@
 *.pyc
 *.mat
 *.egg-info
-*.toml
 
 # Packages #
 ############
