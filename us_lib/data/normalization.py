@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-
 import numpy as np
 
 # Load utilities for the data
@@ -10,12 +8,10 @@ class NormalizationHandler:
     so that we don't need to store this information in other areas of the program
     """
 
-    def __init__(self, X, method='std', bounds=None, excluded_axis = None):
+    def __init__(self, method='std', bounds=None, excluded_axis = None):
         """
         Parameters
         ----------
-        X : np.ndarray
-            Data to normalize (1D vector, 2D matrix, 3D matrix, 4D matrix, etc)
         method : str
             'std' for standardization or 'bounds' for min-max normalization
         bounds : tuple, optional
@@ -26,19 +22,14 @@ class NormalizationHandler:
                 X = np.array([[1, 2], [3, 4], [5, 6]])
                 self._std(X, excluded_axis=[1])  # Per-feature normalization
         """
-
-        self.X = X.copy()
-        self.method = method
+        self.matrix_set = 0
         self.bounds = bounds  if bounds is not None else (0, 1)
 
         if excluded_axis is None:
             excluded_axis = []
+        self.excluded_axis = excluded_axis
 
-        self.shape = X.shape
-        self.dim = X.ndim
-        
-        self.axis = tuple(i for i in range(self.dim) if i not in excluded_axis)
-
+        self.method = method
         methods = {
             'std' : self._std,
             'bounds' : self._bounds
@@ -48,19 +39,51 @@ class NormalizationHandler:
             raise ValueError(f"Unknown method: {method}. Choose from {list(methods.keys())}")
 
         self._normalize = methods[method]
-        self._normalize()
+
+    def fit(self, X):
+        """
+        Fit the normalization to the matrix X
+        Parameters:
+        -----------
+        X : np.ndarray
+            Data to normalize (1D vector, 2D matrix, 3D matrix, 4D matrix, etc)
+            and to serve as the baseline for normalization
+        """
+        # If the matrix is not set
+        if self.matrix_set == 0:
+            self.X = X.copy()
+            self.shape = X.shape
+            self.dim = X.ndim
+
+            self.axis = tuple(i for i in range(self.dim) if i not in self.excluded_axis)
+            self._normalize()
+            # Flag it so that future calls will result in an error
+            self.matrix_set = 1
+        else:
+            raise ValueError("Transformation already set\nExiting")
+        
+    def fit_normalize(self, X):
+        self.fit(X)
+        return self._X_norm
 
     # function to normalize a second matrix, of the same size, by the same amounts as the original set
     def normalize(self, X):
         """
         Normalize a separate set of data by the same values as the original set
         """
+        if self.matrix_set == 0:
+            raise ValueError("Transformation not set\nPlease run X.fit() or X.fit_normalize() first.")
         self._check_dimensions(X)
         X = self._normalize(X)
         return X
 
     def denormalize(self, X_norm):
         """Denormalize data back to the original scale"""
+        if X_norm.ndim == 1 and hasattr(self, "shape") and len(self.shape) == 2:
+            X_norm = X_norm.reshape(1, -1)
+        if X_norm.ndim == 2 and hasattr(self, "shape") and len(self.shape) == 3:
+            X_norm = X_norm.reshape(1, *X_norm.shape)
+
         self._check_dimensions(X_norm)
         if self.method == 'std':
             result = (X_norm * self.std) + self.mean

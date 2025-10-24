@@ -39,12 +39,12 @@ def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='POD-MLP Training Script')
     
-    parser.add_argument('--num_layers', type=int, default=5,
-                        help='Number of layers in the MLP (default: 5)')
-    parser.add_argument('--layer_size', type=int, default=10,
-                        help='Size of each hidden layer (default: 10)')
-    parser.add_argument('--epochs', type=int, default=2000,
-                        help='Number of training epochs (default: 2000)')
+    parser.add_argument('--num_layers', type=int, default=4,
+                        help='Number of layers in the MLP (default: 4)')
+    parser.add_argument('--layer_size', type=int, default=16,
+                        help='Size of each hidden layer (default: 16)')
+    parser.add_argument('--epochs', type=int, default=1000,
+                        help='Number of training epochs (default: 1000)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Batch size for training (default: 16)')
     parser.add_argument('--learning_rate', type=float, default=0.001,
@@ -55,6 +55,8 @@ def parse_args():
                         help='Number of POD modes (default: 10)')
     parser.add_argument('--path', type=str, default='./data/test/non-var-thickness',
                         help='Path to trial data relative to pod-mlp.py')
+    parser.add_argument('--verbose', type=bool, default=0,
+                        help='Print the structure of the network (default: 0)')
     
     return parser.parse_args()
 
@@ -126,7 +128,7 @@ def main():
     stress_fields = np.array(stress_fields, dtype=np.float32) / 1e6 # Convert Pa to MPa
 
     # Center the stress fields
-    mean_field = np.mean(stress_fields, axis=1, keepdims=True)
+    mean_field = np.mean(stress_fields, axis=0, keepdims=True)
     stress_fields = stress_fields - mean_field
 
     # Perform SVD on the stress fields set to compute the major modes
@@ -138,7 +140,6 @@ def main():
     # Break the data into training and test sets
     # -------------------------------------------------------------------------------------------------------------------------
     indices = np.arange(X.shape[0])
-    print(len(indices))
     X_train, X_test, y_train, y_test, train_indicies, test_indicies = train_test_split(
         X, y.T, indices, 
         test_size = 0.2,
@@ -149,13 +150,17 @@ def main():
     # Normalize the data !AFTER! we split the data
     # -------------------------------------------------------------------------------------------------------------------------
 
-    X_normalizer = NormalizationHandler(X_train, method = 'std', excluded_axis=[1])
-    y_normalizer = NormalizationHandler(y_train, method = 'std', excluded_axis=[1, 2])
+    X_normalizer = NormalizationHandler(method = 'std', excluded_axis=[1])
+    y_normalizer = NormalizationHandler(method = 'std', excluded_axis=[1, 2])
 
     # We need to noramlize the y_train and then normalize the y_test with the same values
+    X_train = X_normalizer.fit_normalize(X_train)
+    y_train = y_normalizer.fit_normalize(y_train)
+
     X_test = X_normalizer.normalize(X_test)
     y_test = y_normalizer.normalize(y_test)
 
+    # Convert into torch compatible versions
     X_train = torch.from_numpy(X_train).float()
     y_train = torch.from_numpy(y_train).float()
 
@@ -184,8 +189,9 @@ def main():
     singular_values = s[:args.num_modes]
     mode_weights = torch.from_numpy(singular_values / singular_values.sum()).float().to(device)
     
-    summary(model, input_size=(250, 4))
-    writer = SummaryWriter(log_dir="./pod-mlp/runs/")
+    if args.verbose:
+        summary(model, input_size=(250, 4))
+    writer = SummaryWriter(log_dir=f"./pod_mlp/runs/{timestamp}")
 
     num_params = sum(p.numel() for p in model.parameters())
     print(f"\nNumber of parameters: {num_params:,}\n")
@@ -200,7 +206,7 @@ def main():
         for input, labels in train_loader:
             input = input.to(device)
             labels = labels.to(device)
-           
+
             # Forward pass
             outputs = model(input)
             # loss = criterion(outputs, labels)
@@ -242,48 +248,49 @@ def main():
     # -------------------------------------------------------------------------------------------------------------------------
     # Visualize the compare the results of the model to the original and POD data
     # -------------------------------------------------------------------------------------------------------------------------
-    test_sample_idx = 9
-    test_parameters = X_test[test_sample_idx]
-    test_coefficients = y_test[test_sample_idx]
+    test_idx = 9
+    X_test = X_test[test_idx].unsqueeze(0).to(device)
+    y_test = y_test[test_idx].cpu().numpy()
 
     with torch.no_grad():
-        test_parameters_tensor = test_parameters.unsqueeze(0).to(device)
-        predicted_coefficients_norm = model(test_parameters_tensor).squeeze(0).cpu().numpy()
-        
-        # Denormalize coefficients
-        test_coef_denorm = coef_normalizer.denormalize(test_coefficients.cpu().numpy())
-        pred_coef_denorm = coef_normalizer.denormalize(predicted_coefficients_norm)
-        
-        pod_snapshot = (U_reduced @ test_coef_denorm) + mean_field.squeeze()
-        predicted_snapshot = (U_reduced @ pred_coef_denorm) + mean_field.squeeze()
+        y_pred = model(X_test).squeeze(0).cpu().numpy()
 
-    # Map test_sample_idx back to the original dataset index
-    original_idx = test_indices[test_sample_idx]
+    y_test = y_normalizer.denormalize(y_test)
+    y_pred = y_normalizer.denormalize(y_pred)
 
-    # Get the original FEM data for this specific snapshot
-    fem_snapshot = original_snapshots[original_idx]
+    y_test = np.squeeze(y_test)
+    y_pred = np.squeeze(y_pred)
 
-    vmin = min(fem_snapshot.min(), pod_snapshot.min(), predicted_snapshot.min())
-    vmax = max(fem_snapshot.max(), pod_snapshot.max(), predicted_snapshot.max())
+    stress_field_test = (U_reduced @ y_test) + mean_field.squeeze()
+    stress_field_pred = (U_reduced @ y_pred) + mean_field.squeeze()
+    stress_fields += mean_field.squeeze()
+
+    # Map test_idx back to the original dataset index
+    test_idx = test_indicies[test_idx]
+    fo_stress_field_test = stress_fields[test_idx, :]
+
+    vmin = min(fo_stress_field_test.min(), stress_field_test.min(), stress_field_pred.min())
+    vmax = max(fo_stress_field_test.max(), stress_field_test.max(), stress_field_pred.max())
+
+    vmin = min(fo_stress_field_test.min(), stress_field_test.min())
+    vmax = max(fo_stress_field_test.max(), stress_field_test.max())
 
     # After POD, check reconstruction error
-    pod_error = np.mean([np.linalg.norm(snapshots[:, i] - (U_reduced @ modal_coefficients[:, i] + mean_field.squeeze())) 
-                        for i in range(snapshots.shape[1])])
+    pod_error = np.mean([np.linalg.norm(stress_fields[i, :] - stress_field_pred) for i in range(stress_fields.shape[0])])
     print(f"Average POD reconstruction error: {pod_error:.4f} MPa")
 
     # After the prediction section
-    print("\nCoefficient Comparison:")
-    print("Mode | True (norm) | Pred (norm) | True (denorm) | Pred (denorm)")
-    print("-" * 70)
-    for i in range(args.num_modes):
-        true_norm = test_coefficients[i].item()
-        pred_norm = predicted_coefficients_norm[i]
-        true_denorm = test_coef_denorm[i]
-        pred_denorm = pred_coef_denorm[i]
-        print(f"{i:4d} | {true_norm:11.4f} | {pred_norm:11.4f} | {true_denorm:13.4f} | {pred_denorm:13.4f}")
+    if args.verbose:
+        print("\nCoefficient Comparison:")
+        print("Mode | True (norm) | Pred (norm) | True (denorm) | Pred (denorm)")
+        print("-" * 70)
+        for i in range(args.num_modes):
+            true_denorm = y_test[i]
+            pred_denorm = y_pred[i]
+            print(f"{i:4d} | {true_denorm:13.4f} | {pred_denorm:13.4f}")
 
     # Calculate per-coefficient error
-    coef_errors = np.abs(test_coef_denorm - pred_coef_denorm)
+    coef_errors = np.abs(y_test - y_pred)
     print(f"\nCoefficient-wise MAE: {coef_errors.mean():.4f}")
     print(f"Max coefficient error: {coef_errors.max():.4f} (mode {coef_errors.argmax()})")
 
@@ -292,7 +299,7 @@ def main():
 
     im1 = plot_field(
         ax1,
-        fem_snapshot,
+        fo_stress_field_test,
         records[0].input,
         object_index=0,
         object_index_map=object_index_maps[0],
@@ -304,7 +311,7 @@ def main():
 
     im2 = plot_field(
         ax2,
-        pod_snapshot,
+        stress_field_test,
         records[0].input,
         object_index=0,
         object_index_map=object_index_maps[0],
@@ -316,7 +323,7 @@ def main():
 
     im3 = plot_field(
         ax3,
-        predicted_snapshot,
+        stress_field_pred,
         records[0].input,
         object_index=0,
         object_index_map=object_index_maps[0],
@@ -334,9 +341,9 @@ def main():
         ax.set_aspect('equal')
 
     # Display the test parameters
-    param_str = ", ".join([f"{name}={test_parameters[i].item():.3f}" 
+    param_str = ", ".join([f"{name}={X_test[:,i].item():.3f}" 
                             for i, name in enumerate(parameter_names)])
-    fig.suptitle(f"Test Sample {test_sample_idx}: {param_str}")
+    fig.suptitle(f"Test Sample {test_idx}: {param_str}")
     plt.tight_layout()
     plt.show()
 
@@ -344,19 +351,19 @@ def main():
 
     N = 80
 
-    side_element_count = int(np.sqrt(len(fem_snapshot)))
+    side_element_count = int(np.sqrt(len(fo_stress_field_test)))
     panel_width_vector = np.linspace(-1.5, 1.5, side_element_count)
 
     # Extract cross-section at row N from all three datasets
-    original_stress = fem_snapshot[N*side_element_count: (N + 1)*side_element_count]
-    pod_stress = pod_snapshot[N*side_element_count: (N + 1)*side_element_count]
-    predicted_stress = predicted_snapshot[N*side_element_count: (N + 1)*side_element_count]
+    fo_section = fo_stress_field_test[N*side_element_count: (N + 1)*side_element_count]
+    y_test_section = stress_field_test[N*side_element_count: (N + 1)*side_element_count]
+    y_pred_section = stress_field_pred[N*side_element_count: (N + 1)*side_element_count]
 
-    ax1.plot(panel_width_vector, original_stress, label="fem", lw=0.9)
-    ax1.plot(panel_width_vector, pod_stress, label="pod", lw=0.9)
-    ax1.plot(panel_width_vector, predicted_stress, label="pod-mlp", lw=0.9)
+    ax1.plot(panel_width_vector, fo_section, label="fem", lw=0.9)
+    ax1.plot(panel_width_vector, y_test_section, label="pod", lw=0.9)
+    ax1.plot(panel_width_vector, y_pred_section, label="pod-mlp", lw=0.9)
 
-    ax1.set_title(f"Cross-Section at Row {N} (Original Index: {original_idx})")
+    ax1.set_title(f"Cross-Section at Row {N} (Original Index: {test_idx})")
     ax1.set_xlabel("Panel Width (m)")
     ax1.set_ylabel("Stress (MPa)")
     plt.legend(title="data set", fontsize='small', fancybox=True, title_fontsize=7, loc='best')
@@ -367,14 +374,14 @@ def main():
     plt.show()
 
     if args.save == 1:
-        os.makedirs('mlp-models', exist_ok=True)
+        os.makedirs('models', exist_ok=True)
         torch.save({
             'model_state_dict': model.state_dict(),
             'input_size': len(parameter_names),
             'num_layers': args.num_layers,
             'layer_size': args.layer_size,
             'output_size': args.num_modes,
-        }, f'mlp-models/model_epoch_{epoch}_{timestamp}.pth')
+        }, f'models/model_epoch_{epoch}_{timestamp}.pth')
 
 if __name__ == '__main__':
     main()

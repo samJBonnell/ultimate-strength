@@ -393,26 +393,3 @@ class ModelOutput(object):
         if self.assembly_mass is not None:
             result["assembly_mass"] = self.assembly_mass
         return result
-    
-def write_trial_ndjson(output, path="results.jsonl"):
-    """Write model output to NDJSON format (append mode)"""
-    with open(path, "a") as f:
-        json_line = json.dumps(clean_json(output))
-        f.write(json_line + "\n")
-
-def write_trial_ndjson_gz(output, path="results.jsonl.gz"):
-    """Write model output to compressed NDJSON format"""
-    with gzip.open(path, "ab") as f:
-        json_line = json.dumps(output.to_dict()) + "\n"
-        f.write(json_line.encode("utf-8"))
-
-def clean_json(obj):
-    """Clean object for JSON serialization"""
-    if hasattr(obj, 'to_dict'):
-        return obj.to_dict()
-    elif isinstance(obj, dict):
-        return {k: clean_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_json(item) for item in obj]
-    else:
-        return obj

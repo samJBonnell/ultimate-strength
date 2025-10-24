@@ -1,31 +1,14 @@
-from typing import Generator, List, Optional, Set, Tuple
+# Import package code
 import json
-import random
-from pathlib import Path
-from tqdm import tqdm
 import gzip
-import numpy as np
-from us_lib.model_utilities import ModelInput, ModelOutput
+import random
+from tqdm import tqdm
+from pathlib import Path
+from typing import Generator, List, Optional, Set, Tuple
 
-# Create a record class that stores the results from a single simulation
-class Record:
-    """Container for input/output pair"""
-    def __init__(self, input_data: ModelInput, output_data: ModelOutput):
-        self.input = input_data
-        self.output = output_data
-    
-    @staticmethod
-    def from_dict(d: dict) -> 'Record':
-        return Record(
-            input_data=ModelInput.from_dict(d["input"]),
-            output_data=ModelOutput.from_dict(d["output"])
-        )
-    
-    def to_dict(self) -> dict:
-        return {
-            "input": self.input.to_dict(),
-            "output": self.output.to_dict()
-        }
+# Import personal code
+from input_output import ModelInput, ModelOutput
+from record import Record
 
 def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set[str]] = None) -> Generator[Record, None, None]:
     """
@@ -138,3 +121,26 @@ def get_record_count(input_path: Path, output_path: Path) -> Tuple[int, int, int
    
     matched_count = len(input_ids & output_ids)
     return len(input_ids), len(output_ids), matched_count
+
+def write_trial_ndjson(output, path="results.jsonl"):
+    """Write model output to NDJSON format (append mode)"""
+    with open(path, "a") as f:
+        json_line = json.dumps(clean_json(output))
+        f.write(json_line + "\n")
+
+def write_trial_ndjson_gz(output, path="results.jsonl.gz"):
+    """Write model output to compressed NDJSON format"""
+    with gzip.open(path, "ab") as f:
+        json_line = json.dumps(output.to_dict()) + "\n"
+        f.write(json_line.encode("utf-8"))
+
+def clean_json(obj):
+    """Clean object for JSON serialization"""
+    if hasattr(obj, 'to_dict'):
+        return obj.to_dict()
+    elif isinstance(obj, dict):
+        return {k: clean_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json(item) for item in obj]
+    else:
+        return obj
