@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.stats import qmc
 from uuid import uuid4
-from utils.FEMPipeline import FEMPipeline
-from utils.IO_utils import ModelInput, ModelOutput
+
+from abaqus_imports import FEMPipeline
+from abaqus_imports import ModelInput, ModelOutput
 from tqdm import tqdm
 
 n_samples = 250
@@ -56,11 +57,12 @@ base_input = ModelInput(
 
 # Create handeler for FEM model
 fem_model = FEMPipeline(
-    model="models\\flat_panel.py",
-    input_path="data\\input.jsonl", 
-    output_path="data\\output.jsonl",
+    model="abaqus_scripts/models/flat_panel.py",
+    input_path="data/input.jsonl",
+    output_path="data/output.jsonl",
     input_class=ModelInput,
-    output_class=ModelOutput)
+    output_class=ModelOutput
+)
 
 for i, sample in enumerate(tqdm(samples, desc="Evaluating panel samples")):
     variable_input = base_input.copy(

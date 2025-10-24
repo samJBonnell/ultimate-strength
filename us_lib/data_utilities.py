@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List
 
-from utils.json_utils import Record
+from us_lib.json_utilities import Record
 
 def extract_von_mises_stress(records: List[Record], step = 'Step-1') -> List[List[float]]:
     return [[s.attributes['stress'].vm for s in r.output.elements_by_step[step]] for r in records]

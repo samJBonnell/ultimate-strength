@@ -29,12 +29,11 @@ from sklearn.model_selection import train_test_split
 from scipy.linalg import svd
 
 # Personal Definitions
-from utils.mlp_utilities import MLP, weighted_mse_loss
-from utils.normalization_utilities import NormalizationHandler
-from utils.json_utils import load_records
-from utils.pod_utilities import training_data_constructor, plot_field
-from utils.data_utilities import extract_attributes
-
+from us_lib.mlp_utilities import MLP, weighted_mse_loss
+from us_lib.normalization_utilities import NormalizationHandler
+from us_lib.json_utilities import load_records
+from us_lib.pod_utilities import training_data_constructor, plot_field
+from us_lib.data_utilities import extract_attributes
 
 def parse_args():
     """Parse command line arguments"""
@@ -54,7 +53,7 @@ def parse_args():
                         help='Save (default: 0)')
     parser.add_argument('--num_modes', type=int, default=10,
                         help='Number of POD modes (default: 10)')
-    parser.add_argument('--path', type=str, default='data/non-var-thickness',
+    parser.add_argument('--path', type=str, default='./data/test/non-var-thickness',
                         help='Path to trial data relative to pod-mlp.py')
     
     return parser.parse_args()
@@ -139,8 +138,9 @@ def main():
     # Break the data into training and test sets
     # -------------------------------------------------------------------------------------------------------------------------
     indices = np.arange(X.shape[0])
+    print(len(indices))
     X_train, X_test, y_train, y_test, train_indicies, test_indicies = train_test_split(
-        X, y, indices, 
+        X, y.T, indices, 
         test_size = 0.2,
         random_state=None
     )
@@ -169,29 +169,30 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # -------------------------------------------------------------------------------------------------------------------------
+    # Create MLP object
+    # -------------------------------------------------------------------------------------------------------------------------
+    model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.05)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    # -------------------------------------------------------------------------------------------------------------------------
     # Define the optimizer and the loss function
-    # -------------------------------------------------------------------------------------------------------------------------    
+    # -------------------------------------------------------------------------------------------------------------------------
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
 
     singular_values = s[:args.num_modes]
     mode_weights = torch.from_numpy(singular_values / singular_values.sum()).float().to(device)
-    # -------------------------------------------------------------------------------------------------------------------------
-    # Create MLP object
-    # -------------------------------------------------------------------------------------------------------------------------
-    model = MLP(input_size=len(parameter_names), num_layers=args.num_layers, layers_size=args.layer_size, output_size=args.num_modes, dropout=0.05)
+    
+    summary(model, input_size=(250, 4))
+    writer = SummaryWriter(log_dir="./pod-mlp/runs/")
+
     num_params = sum(p.numel() for p in model.parameters())
     print(f"\nNumber of parameters: {num_params:,}\n")
-
-    # Send the training to our GPU if at all available
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
-
-    summary(model, input_size=(1, 4, 80, 80))
-    writer = SummaryWriter()
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+    # -------------------------------------------------------------------------------------------------------------------------
     # Run the training of the model
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     model.train()
     for epoch in tqdm(range(args.epochs)):
         total_loss = 0

@@ -8,6 +8,8 @@
 *.so
 *.pyc
 *.mat
+*.egg-info
+*.toml
 
 # Packages #
 ############
@@ -52,9 +54,14 @@ events.*
 data\
 mlp-models\
 runs\
+abq_working\
 
 # Files to exlude #
 ######################
+tree.txt
+*.rpy
+*.rec
+*.log
 
 # OS generated files #
 ######################

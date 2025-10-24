@@ -34,22 +34,36 @@ import odbAccess
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
-# !!! Set correct working directory !!!
-working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\cnn-narges\\cnn-isotropic-panel\\data_generation'
-input_directory = r'data\\input.jsonl'
-output_directory = r'data\\output.jsonl'
-os.chdir(working_directory)
+import sys
+import os
+from os.path import join, exists
 
+# Define project root (change this to match your setup)
+project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength'
+sys.path.insert(0, project_root)
+
+# Define paths
+working_directory = join(project_root, 'abaqus_scripts', 'working')
+input_directory = join(project_root, 'data', 'input.jsonl')
+output_directory = join(project_root, 'data', 'output.jsonl')
+
+# Create working directory if it doesn't exist
+if not exists(working_directory):
+    os.makedirs(working_directory)
+
+# Change to working directory
+os.chdir(working_directory)
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Design Parameters
 # Load the variables from the last line of the input jsonl
-from utils.IO_utils import from_dict, write_trial_ndjson, ThicknessGroup, ModelOutput, Element, Stress
-from utils.node_utilities import get_nodes
-from utils.mesh_utilities import mesh_from_faces
-from utils.section_utilities import assign_section
+from us_lib.model_utilities import from_dict, write_trial_ndjson, ThicknessGroup, ModelOutput, Element, Stress
+
+from abq_lib.node_utilities import get_nodes
+from abq_lib.mesh_utilities import mesh_from_faces
+from abq_lib.section_utilities import assign_section
 
 with open(input_directory) as f:
     last_line = [l for l in f if l.strip()][-1]

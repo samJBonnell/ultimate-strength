@@ -30,20 +30,20 @@ from torchinfo import summary
 from sklearn.model_selection import train_test_split
 
 # Personal Definitions
-from utils.normalization_utilities import NormalizationHandler
+from us_lib.normalization_utilities import NormalizationHandler
 
-from utils.json_utils import (
+from us_lib.json_utilities import (
     load_records
 )
 
-from utils.data_utilities import (
+from us_lib.data_utilities import (
     extract_attributes,
     # filter_valid_snapshots,
     # training_data_constructor,
     # plot_field,
 )
 
-from utils.cnn_utilities import EncoderBlock, DecoderBlock, Bridge, EncoderDecoderNetwork
+from us_lib.cnn_utilities import EncoderBlock, DecoderBlock, Bridge, EncoderDecoderNetwork
 
 def parse_args():
     """Parse command line arguments"""
@@ -61,7 +61,7 @@ def parse_args():
                         help='Learning rate (default: 0.001)')
     parser.add_argument('--save', type=bool, default=0,
                         help='Save (default: 0)')
-    parser.add_argument('--path', type=str, default='data/non-var-thickness',
+    parser.add_argument('--path', type=str, default='./data/test/non-var-thickness',
                         help='Path to trial data relative to pod-mlp.py')
     
     return parser.parse_args()
@@ -137,7 +137,9 @@ def main():
         random_state=None
     )
 
-    # Normalization!
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Normalize the data !AFTER! we split the data
+    # -------------------------------------------------------------------------------------------------------------------------
     # We need to normalize the X_train and then normalize the X_test with the same values
     X_normalizer = NormalizationHandler(X_train, method = 'std', excluded_axis=[1])
     y_normalizer = NormalizationHandler(y_train, method = 'std', excluded_axis=[1, 2])
@@ -146,28 +148,11 @@ def main():
     X_test = X_normalizer.normalize(X_test)
     y_test = y_normalizer.normalize(y_test)
 
-    # We can now train a network!
-    model = EncoderDecoderNetwork(input_channels=num_features, output_channels = 1)
-    num_params = sum(p.numel() for p in model.parameters())
-    print(f"\nNumber of parameters: {num_params:,}\n")
-
-    summary(model, input_size=(1, 4, 80, 80))
-
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    # Convert the data into a torch-compatible format
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
-    
     X_train = torch.from_numpy(X_train).float()
     y_train = torch.from_numpy(y_train).float()
 
     X_test = torch.from_numpy(X_test).float()
     y_test = torch.from_numpy(y_test).float()
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
-
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
 
     train_dataset = TensorDataset(X_train, y_train)
     test_dataset = TensorDataset(X_test, y_test)
@@ -175,10 +160,30 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    writer = SummaryWriter()
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Define the optimizer and the loss function
+    # -------------------------------------------------------------------------------------------------------------------------
+    model = EncoderDecoderNetwork(input_channels=num_features, output_channels = 1)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5)
+
+    # We can now train a network!
+
+    # -------------------------------------------------------------------------------------------------------------------------
+    # Create the summary writer and Tensorboard writer
+    # -------------------------------------------------------------------------------------------------------------------------
+    summary(model, input_size=(1, 4, 80, 80))
+    writer = SummaryWriter(log_dir="./cnn/runs/")
+
+    num_params = sum(p.numel() for p in model.parameters())
+    print(f"\nNumber of parameters: {num_params:,}\n")
+    # -------------------------------------------------------------------------------------------------------------------------
     # Run the training of the model
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     model.train()
     for epoch in tqdm(range(args.epochs)):
         total_loss = 0
@@ -195,14 +200,16 @@ def main():
             loss.backward()
             optimizer.step()
 
+            total_loss += loss
+
         avg_epoch_loss = total_loss / len(train_loader)
         writer.add_scalar('Loss/Train', avg_epoch_loss, epoch)
 
     writer.flush()
     
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     # Evaluate the performance of the model
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------------------------------
     model.eval()
     test_loss = 0
     with torch.no_grad():

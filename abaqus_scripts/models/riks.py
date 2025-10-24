@@ -35,9 +35,9 @@ import odbAccess
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 # !!! Set correct working directory !!!
-working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\buckling'
-input_directory = r'data\\input.jsonl'
-output_directory = r'data\\output.jsonl'
+working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\abq_working'
+input_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\data\\input.jsonl'
+output_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\data\\output.jsonl'
 os.chdir(working_directory)
 
 # Configure coordinate output
@@ -46,12 +46,20 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Design Parameters
 # Load the variables from the last line of the input jsonl
-from utils.IO_utils import from_dict, ThicknessGroup
-from utils.node_utilities import get_nodes_along_axis, move_closest_nodes_to_axis, find_closest_node, get_nodes
-from utils.mesh_utilities import mesh_from_faces
-from utils.section_utilities import assign_section, set_local_section
-from utils.transformation_utilities import homogenous_transform
-from utils.constraint_utilities import equation_sets
+# from utils.IO_utils import from_dict, ThicknessGroup
+# from utils.node_utilities import get_nodes_along_axis, move_closest_nodes_to_axis, find_closest_node, get_nodes
+# from utils.mesh_utilities import mesh_from_faces
+# from utils.section_utilities import assign_section, set_local_section
+# from utils.transformation_utilities import homogenous_transform
+# from utils.constraint_utilities import equation_sets
+
+from abaqus_imports import (
+    from_dict, ThicknessGroup,
+    get_nodes_along_axis, move_closest_nodes_to_axis, find_closest_node, get_nodes,
+    mesh_from_faces, assign_section, set_local_section,
+    homogenous_transform,
+    equation_sets
+)
 
 with open(input_directory) as f:
     last_line = [l for l in f if l.strip()][-1]

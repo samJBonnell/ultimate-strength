@@ -5,7 +5,7 @@ from pathlib import Path
 from tqdm import tqdm
 import gzip
 import numpy as np
-from utils.IO_utils import ModelInput, ModelOutput
+from us_lib.model_utilities import ModelInput, ModelOutput
 
 # Create a record class that stores the results from a single simulation
 class Record:
@@ -48,8 +48,8 @@ def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set
                 continue
             try:
                 data = json.loads(line)
-                # Use model_name as ID, or fallback to job_name
-                id_ = data.get("model_name") or data.get("job_name")
+                # Use job_name as ID, or fallback to model_name
+                id_ = data.get("job_name") or data.get("model_name")
                 if (filter_ids is None) or (id_ in filter_ids):
                     model_input = ModelInput.from_dict(data)
                     input_map[id_] = model_input
@@ -64,13 +64,26 @@ def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set
                 continue
             try:
                 data = json.loads(line)
-                id_ = data.get("id") or data.get("job_name")
+                id_ = data.get("job_name") or data.get("model_name")
                 if id_ in input_map:
                     output = ModelOutput.from_dict(data)
                     yield Record(input_map[id_], output)
             except (KeyError, TypeError, json.JSONDecodeError) as e:
                 print(f"Warning: Skipping invalid output record: {e}")
                 continue
+
+def load_records(input_path: Path, output_path: Path) -> List[Record]:
+    """
+    Load all records from input and output files.
+    
+    Args:
+        input_path: Path to input JSONL file
+        output_path: Path to output JSONL file
+        
+    Returns:
+        List of Record objects
+    """
+    return list(stream_records(input_path, output_path))
 
 def load_random_records(input_path: Path, output_path: Path, n: int) -> List[Record]:
     """
