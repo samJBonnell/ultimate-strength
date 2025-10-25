@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Generator, List, Optional, Set, Tuple
 
 # Import personal code
-from input_output import ModelInput, ModelOutput
-from record import Record
+from us_lib.abaqus_io import ModelInput, ModelOutput
+from us_lib.data.record import Record
 
 def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set[str]] = None) -> Generator[Record, None, None]:
     """

@@ -29,11 +29,11 @@ from sklearn.model_selection import train_test_split
 from scipy.linalg import svd
 
 # Personal Definitions
-from us_lib.mlp_utilities import MLP, weighted_mse_loss
-from us_lib.normalization_utilities import NormalizationHandler
-from us_lib.json_utilities import load_records
-from us_lib.pod_utilities import training_data_constructor, plot_field
-from us_lib.data_utilities import extract_attributes
+from us_lib.models.mlp import MLP, weighted_mse_loss
+from us_lib.data.normalization import NormalizationHandler
+from us_lib.data.reader import load_records
+from us_lib.models.pod import training_data_constructor, plot_field
+from us_lib.data.parsing import extract_attributes
 
 def parse_args():
     """Parse command line arguments"""

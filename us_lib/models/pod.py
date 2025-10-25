@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Dict, Tuple
 
-from data.parsing import slice_single_stress_vector
+from us_lib.data.parsing import slice_single_stress_vector
 
 def training_data_constructor(
     stress_vector: List[float],

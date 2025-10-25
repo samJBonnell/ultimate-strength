@@ -30,11 +30,11 @@ from torchinfo import summary
 from sklearn.model_selection import train_test_split
 
 # Personal Definitions
-from us_lib.normalization_utilities import NormalizationHandler
-from us_lib.json_utilities import load_records
-from us_lib.data_utilities import extract_attributes
-from us_lib.cnn_utilities import EncoderBlock, DecoderBlock, Bridge, EncoderDecoderNetwork
-from us_lib.visual_utilities import plot_field
+from us_lib.data.normalization import NormalizationHandler
+from us_lib.data.reader import load_records
+from us_lib.data.parsing import extract_attributes
+from us_lib.models.cnn import EncoderDecoderNetwork
+from us_lib.visuals import plot_field
 
 def parse_args():
     """Parse command line arguments"""

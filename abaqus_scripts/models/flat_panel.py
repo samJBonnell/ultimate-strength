@@ -59,7 +59,8 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Design Parameters
 # Load the variables from the last line of the input jsonl
-from us_lib.model_utilities import from_dict, write_trial_ndjson, ThicknessGroup, ModelOutput, Element, Stress
+from us_lib.abaqus_io import from_dict, ThicknessGroup, ModelOutput, Element, Stress
+from us_lib.data.reader import write_trial_ndjson
 
 from abq_lib.node_utilities import get_nodes
 from abq_lib.mesh_utilities import mesh_from_faces

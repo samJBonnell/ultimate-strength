@@ -1,4 +1,4 @@
-from input_output import ModelInput, ModelOutput
+from us_lib.abaqus_io import ModelInput, ModelOutput
 
 # Create a record class that stores the results from a single simulation
 class Record:

@@ -19,6 +19,6 @@ from abq_lib.FEMPipeline import FEMPipeline
 from abq_lib.mesh_utilities import *
 
 # Import from us_lib
-from us_lib.input_output import ModelInput, ModelOutput
+from us_lib.abaqus_io import ModelInput, ModelOutput
 
 __all__ = ['FEMPipeline', 'ModelInput', 'ModelOutput']
