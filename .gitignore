@@ -52,10 +52,10 @@ events.*
 # Data directory #
 ######################
 data\
-*\runs\
-*\abaqus_scripts\working\
+cnn\runs\
+pod_mlp\runs\
+abaqus_scripts\working\
 archive\
-
 
 # Files to exlude #
 ######################
