@@ -1,4 +1,0 @@
-Abaqus License Manager checked out the following license:
-"cae" from Flexnet server 137.82.16.85
-<1 out of 11 licenses remain available>.
-Terminate batch job (Y/N)? 
