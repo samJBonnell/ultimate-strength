@@ -44,9 +44,6 @@ project_root = os.environ.get('PROJECT_ROOT')
 if project_root is None:
     # Fallback for manual CAE runs - hardcode it
     project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate_strength'
-    print("Running manually from CAE - using hardcoded project root")
-else:
-    print("Running via ModelWrapper - using PROJECT_ROOT from environment")
 
 # Add abaqus_scripts to path
 abaqus_dir = join(project_root, 'abaqus_scripts')
@@ -57,26 +54,6 @@ if abaqus_dir not in sys.path:
 working_directory = join(project_root, 'abaqus_scripts', 'working')
 input_directory = join(project_root, 'data', 'input.jsonl')
 output_directory = join(project_root, 'data', 'output.jsonl')
-
-# Debug: Print paths and check if abq_lib exists
-print("Working dir: {}".format(working_directory))
-print("Input dir: {}".format(input_directory))
-print("Output dir: {}".format(output_directory))
-print("Abaqus dir: {}".format(abaqus_dir))
-print("sys.path[0]: {}".format(sys.path[0]))
-
-# Check if abq_lib directory exists
-abq_lib_path = join(abaqus_dir, 'abq_lib')
-print("Checking abq_lib at: {}".format(abq_lib_path))
-print("abq_lib exists: {}".format(exists(abq_lib_path)))
-
-# Check if __init__.py exists in abq_lib
-init_file = join(abq_lib_path, '__init__.py')
-print("__init__.py exists: {}".format(exists(init_file)))
-
-# List contents of abq_lib
-if exists(abq_lib_path):
-    print("Contents of abq_lib: {}".format(os.listdir(abq_lib_path)))
 
 # Create working directory if it doesn't exist
 if not exists(working_directory):
@@ -119,8 +96,7 @@ for component, thickness in component_thickness_map.items():
 # Start of Definition of Panel Model
 
 # Create model object
-print(type(model_name))
-model = mdb.Model(name=str(model_name))
+model = mdb.Model(name=model_name)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -336,9 +312,6 @@ model.ConcentratedForce(
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Create Job
-print("numCpus: {} -> numCpus Type: {}".format(panel.numCpus, type(panel.numCpus)))
-print("numGpus: {} -> numGpus Type: {}".format(panel.numGpus, type(panel.numGpus)))
-print("job_name: {} -> job_name Type: {}".format(job_name, type(job_name)))
 
 job = mdb.Job(
     atTime=None,
@@ -375,7 +348,6 @@ os.chdir(project_root)
 
 # Capture the file in the 'working dir' to open the odb
 working_file = join(working_directory, "{}.odb".format(job_name))
-print("Working file: {}".format(working_file))
 
 odb = odbAccess.openOdb(path=working_file, readOnly=True)
 stressTensor = odb.steps['Step-1'].frames[-1].fieldOutputs['S'].getSubset(position=INTEGRATION_POINT)
