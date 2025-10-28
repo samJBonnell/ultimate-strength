@@ -47,13 +47,15 @@
 *.msg
 *.sta
 events.*
+*.simdir
 
 # Data directory #
 ######################
 data\
-mlp-models\
 *\runs\
-abq_working\
+*\abaqus_scripts\working\
+archive\
+
 
 # Files to exlude #
 ######################
@@ -62,6 +64,7 @@ tree.txt
 *.rec
 *.log
 *.svg
+*.txt
 
 # OS generated files #
 ######################
