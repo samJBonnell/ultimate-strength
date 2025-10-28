@@ -2,7 +2,7 @@ import sys
 import json
 import gzip
 
-from us_lib.abaqus_io import ModelInput, ModelOutput
+from us_lib.abq_model.classes import ModelClass
 
 # Handle type differences between Py2 and Py3
 if sys.version_info[0] < 3:
@@ -57,4 +57,4 @@ def load_last_input(filepath):
         raise ValueError("No valid input found.")
     data = json.loads(last_line)
     data = clean_unicode(data)
-    return ModelInput.from_dict(data) 
+    return ModelClass.from_dict(data) 

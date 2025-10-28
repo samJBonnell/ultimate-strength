@@ -4,7 +4,7 @@ import os
 import json
 import subprocess
 
-T = TypeVar("T") # ModelInput object
+T = TypeVar("T") # ModelClass object
 U = TypeVar("U") # ModelOutput object
 
 def to_dict_recursive(obj):
@@ -44,7 +44,6 @@ class ModelWrapper(Generic[T, U]):
             # Set environment variable with project root
             env = os.environ.copy()
             env['PROJECT_ROOT'] = str(self.input_path.parent.parent)  # Go up from data/ to project root
-            print(str(self.input_path.parent.parent))
 
             functionCall = subprocess.Popen([
                 "abaqus", "cae", "noGUI={}".format(self.model)

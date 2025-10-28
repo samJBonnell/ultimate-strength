@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Generator, List, Optional, Set, Tuple
 
 # Import personal code
-from us_lib.abaqus_io import ModelInput, ModelOutput
+from us_lib.abq_model.classes import ModelClass
+from us_lib.abq_model.output import ModelOutput
 from us_lib.data.record import Record
 
 def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set[str]] = None) -> Generator[Record, None, None]:
@@ -34,7 +35,7 @@ def stream_records(input_path: Path, output_path: Path, filter_ids: Optional[Set
                 # Use job_name as ID, or fallback to model_name
                 id_ = data.get("job_name") or data.get("model_name")
                 if (filter_ids is None) or (id_ in filter_ids):
-                    model_input = ModelInput.from_dict(data)
+                    model_input = ModelClass.from_dict(data)
                     input_map[id_] = model_input
             except (KeyError, TypeError, json.JSONDecodeError) as e:
                 print(f"Warning: Skipping invalid input record: {e}")

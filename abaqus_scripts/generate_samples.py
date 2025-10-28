@@ -3,9 +3,8 @@ from tqdm import tqdm
 from scipy.stats import qmc
 from uuid import uuid4
 
-from us_lib.new_io import FlatPanelInput
 from abq_lib.model_wrapper import ModelWrapper
-from abq_lib.abaqus_imports import ModelInput, ModelOutput
+from abq_lib.abaqus_imports import FlatPanel, ModelClass, ModelOutput
 
 n_samples = 250
 dim = 5
@@ -33,7 +32,7 @@ samples = qmc.scale(raw_samples, bounds[:, 0], bounds[:, 1])
 # Static / baseline input values
 # -------------------------------
 
-base_input = FlatPanelInput(
+base_input = FlatPanel(
     model_name='flat_panel',
     job_name="",
 
@@ -62,7 +61,7 @@ fem_model = ModelWrapper(
     model="abaqus_scripts/models/flat_panel.py",
     input_path="data/input.jsonl",
     output_path="data/output.jsonl",
-    input_class=ModelInput,
+    input_class=ModelClass,
     output_class=ModelOutput
 )
 

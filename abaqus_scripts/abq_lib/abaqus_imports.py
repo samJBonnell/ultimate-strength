@@ -31,8 +31,10 @@ if project_root not in sys.path:
 # IMPORT THE REQUIRED LIBRARIES
 # ----------------------------------------------
 try:
-    from us_lib.abaqus_io import ModelInput, ModelOutput, Element, Stress    
-    from us_lib.new_io import FlatPanelInput
+    from us_lib.abq_model.classes import ModelClass
+    from us_lib.abq_model.output import ModelOutput, Element, Stress
+
+    from us_lib.abq_model.classes import FlatPanel
         
 except ImportError as e:
     print("Import error: {}".format(e))
@@ -40,11 +42,11 @@ except ImportError as e:
     raise
 
 __all__ = [
-    'ModelInput', 
+    'ModelClass', 
     'ModelOutput', 
     'Element', 
     'Stress', 
-    'FlatPanelInput', 
+    'FlatPanel', 
     'write_trial_ndjson', 
     'load_last_input'
 ]

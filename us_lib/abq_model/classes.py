@@ -1,4 +1,4 @@
-class ModelInput(object):
+class ModelClass(object):
     """Base class for all model inputs"""
     _registry = {}
    
@@ -35,12 +35,12 @@ class ModelInput(object):
     def __repr__(self):
         return "{}({})".format(self.__class__.__name__, self.to_dict())
 
-@ModelInput.register("flat_panel")
-class FlatPanelInput(ModelInput):
+@ModelClass.register("flat_panel")
+class FlatPanel(ModelClass):
     def __init__(self, model_name, job_name, width, length, t_panel,
                  pressure, pressure_location, pressure_patch_size, mesh_plate,
                  numCpus=1, numGpus=0):
-        super(FlatPanelInput, self).__init__(model_name, job_name, numCpus, numGpus)
+        super(FlatPanel, self).__init__(model_name, job_name, numCpus, numGpus)
         self.width = width
         self.length = length
         self.t_panel = t_panel
@@ -68,13 +68,13 @@ class FlatPanelInput(ModelInput):
             numGpus=d.get("numGpus", 0),
         )
 
-@ModelInput.register("stiffened_panel")
-class StiffenedPanelInput(ModelInput):
+@ModelClass.register("stiffened_panel")
+class StiffenedPanel(ModelClass):
     def __init__(self, model_name, job_name, width, length,
                  t_panel, t_transverse_web, t_transverse_flange,
                  t_longitudinal_web, t_longitudinal_flange,
                  pressure, mesh_plate, numCpus=1, numGpus=0):
-        super(StiffenedPanelInput, self).__init__(model_name, job_name, numCpus, numGpus)
+        super(StiffenedPanel, self).__init__(model_name, job_name, numCpus, numGpus)
         self.width = width
         self.length = length
         self.t_panel = t_panel
