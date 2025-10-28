@@ -41,10 +41,26 @@ class ModelWrapper(Generic[T, U]):
 
     def run(self):
         with open("abaqus_log.txt", "w") as log_file:
-            # Set environment variable with project root
             env = os.environ.copy()
-            env['PROJECT_ROOT'] = str(self.input_path.parent.parent)  # Go up from data/ to project root
-
+            
+            current_path = os.path.abspath(str(self.input_path))
+            project_root = None
+            
+            # Walk up the directory tree looking for .project_root marker
+            while current_path != os.path.dirname(current_path):  # Stop at filesystem root
+                marker_file = os.path.join(current_path, '.project_root')
+                if os.path.exists(marker_file):
+                    project_root = current_path
+                    break
+                current_path = os.path.dirname(current_path)
+            
+            # Fallback to hardcoded path if not found
+            if project_root is None:
+                project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate_strength'
+                print("WARNING: Could not find .project_root marker, using hardcoded path")
+            
+            env['PROJECT_ROOT'] = project_root
+            
             functionCall = subprocess.Popen([
                 "abaqus", "cae", "noGUI={}".format(self.model)
             ], stdout=log_file, stderr=log_file, shell=True, env=env)

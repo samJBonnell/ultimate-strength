@@ -5,10 +5,7 @@
 # Library Import
 import numpy as np
 import os
-import json
 import math
-from datetime import datetime
-import re
 
 # ABAQUS Prefactory Information
 from abaqus import *
@@ -52,8 +49,8 @@ if abaqus_dir not in sys.path:
 
 # Define paths
 working_directory = join(project_root, 'abaqus_scripts', 'working')
-input_directory = join(project_root, 'data', 'input.jsonl')
-output_directory = join(project_root, 'data', 'output.jsonl')
+input_directory = join(project_root, 'data', 'model_01', 'input.jsonl')
+output_directory = join(project_root,'data', 'model_01', 'output.jsonl')
 
 # Create working directory if it doesn't exist
 if not exists(working_directory):

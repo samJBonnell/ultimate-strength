@@ -1,14 +1,11 @@
 # Sam Bonnell - UBC Labratory for Structural Efficiency MASc Student
-# 2025-08-11
+# 2025-10-28
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Library Import
 import numpy as np
 import os
-import json
 import math
-from datetime import datetime
-import re
 
 # ABAQUS Prefactory Information
 from abaqus import *
@@ -32,46 +29,69 @@ from connectorBehavior import *
 import regionToolset
 import odbAccess
 
-
-
 # ----------------------------------------------------------------------------------------------------------------------------------
 
-# !!! Set correct working directory !!!
-working_directory = r'C:\\Users\\sbonnell\\Desktop\\lase\\projects\\ultimate-strength\\buckling-model'
-input_directory = r'data\\input.jsonl'
-output_directory = r'data\\output.jsonl'
-os.chdir(working_directory)
+import sys
+from os.path import join, exists
+import os
+
+# Get project root from environment variable (set by ModelWrapper) or fallback to hardcoded
+project_root = os.environ.get('PROJECT_ROOT')
+
+if project_root is None:
+    # Fallback for manual CAE runs - hardcode it
+    project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate_strength'
+
+# Add abaqus_scripts to path
+abaqus_dir = join(project_root, 'abaqus_scripts')
+if abaqus_dir not in sys.path:
+    sys.path.insert(0, abaqus_dir)
+
+# Define paths
+working_directory = join(project_root, 'abaqus_scripts', 'working')
+input_directory = join(project_root, 'data', 'model_02', 'riks', 'input.jsonl')
+output_directory = join(project_root,'data', 'model_02', 'riks', 'output.jsonl')
+
+# Create working directory if it doesn't exist
+if not exists(working_directory):
+    os.makedirs(working_directory)
+
+# Now import from abq_lib
+from abq_lib.abaqus_imports import ModelOutput, Element, Stress
+from abq_lib.abaqus_writer import write_trial_ndjson, load_last_input
+
+from abq_lib.node_utilities import *
+from abq_lib.mesh_utilities import *
+from abq_lib.section_utilities import *
+from abq_lib.transformation_utilities import homogenous_transform
+from abq_lib.constraint_utilities import *
 
 # Configure coordinate output
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
+project_root = os.path.abspath(project_root)
+working_directory = os.path.abspath(join(project_root, working_directory))
+
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Design Parameters
-# Load the variables from the last line of the input jsonl
-from utils.IO_utils import from_dict, ThicknessGroup
-from utils.node_utilities import get_nodes_along_axis, move_closest_nodes_to_axis, find_closest_node, get_nodes
-from utils.mesh_utilities import mesh_from_faces
-from utils.section_utilities import assign_section, set_local_section
-from utils.transformation_utilities import homogenous_transform
-from utils.constraint_utilities import equation_sets
+# Create the panel object
+panel = load_last_input(input_directory)
 
-with open(input_directory) as f:
-    last_line = [l for l in f if l.strip()][-1]
-    data = json.loads(last_line)
+# Change to working directory
+os.chdir(working_directory)
 
-panel = from_dict(data)
+model_name = panel.model_name
+job_name = panel.job_name
 
 # Creation of a list used to create section assignments for each component of the panel
-thicknesses = ThicknessGroup(
-    panel=panel.t_panel,
-    longitudinal_web=panel.t_longitudinal_web,
-    longitudinal_flange=panel.t_longitudinal_flange,
-)
+component_thickness_map = {
+    'panel': panel.t_panel,
+    'longitudinal_web': panel.t_longitudinal_web,
+    'longitudinal_flange': panel.t_longitudinal_flange
+}
 
-ThicknessList = thicknesses.unique()
-
-model_name = str(panel.model_name)
-job_name = str(panel.job_name)
+for component, thickness in component_thickness_map.items():
+    if thickness is None:
+        raise ValueError("{} thickness not set!".format(component))
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Start of Definition of Panel Model
@@ -113,7 +133,7 @@ plate_faces = p.faces.getByBoundingBox(
     yMin=-capture_offset, yMax=capture_offset,
     zMin=-capture_offset, zMax=panel.length + capture_offset
 )
-p.Set(faces=plate_faces, name='PlateFace')
+p.Set(faces=plate_faces, name='plate_face')
 
 # Capture the flange faces
 flange_faces = p.faces.getByBoundingBox(
@@ -121,7 +141,7 @@ flange_faces = p.faces.getByBoundingBox(
     yMin=panel.h_longitudinal_web - capture_offset, yMax=panel.h_longitudinal_web + capture_offset,
     zMin=-capture_offset, zMax=panel.length + capture_offset
 )
-p.Set(faces=flange_faces, name='FlangeFaces')
+p.Set(faces=flange_faces, name='flange_faces')
 
 # Capture each of the web faces
 all_faces = p.faces.getByBoundingBox(
@@ -138,7 +158,7 @@ for web_location in web_locations:
     )
     all_faces = all_faces + faces
 
-p.Set(faces=all_faces, name="WebFaces")
+p.Set(faces=all_faces, name="web_faces")
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Material & Section Definitions
@@ -178,22 +198,23 @@ material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
-for index in range(len(ThicknessList)):
+for component, thickness in component_thickness_map.items():
     model.HomogeneousShellSection(
-    idealization=NO_IDEALIZATION,
-    integrationRule=SIMPSON,
-    material='steel',
-    name="t-{}".format(ThicknessList[index]),
-    nodalThicknessField='',
-    numIntPts=5,
-    poissonDefinition=DEFAULT,
-    preIntegrate=OFF,
-    temperature=GRADIENT,
-    thickness=float(ThicknessList[index]),
-    thicknessField='',
-    thicknessModulus=None, 
-    thicknessType=UNIFORM, 
-    useDensity=OFF)
+        idealization=NO_IDEALIZATION,
+        integrationRule=SIMPSON,
+        material='steel',
+        name=component,
+        nodalThicknessField='',
+        numIntPts=5,
+        poissonDefinition=DEFAULT,
+        preIntegrate=OFF,
+        temperature=GRADIENT,
+        thickness=float(thickness),
+        thicknessField='',
+        thicknessModulus=None, 
+        thicknessType=UNIFORM, 
+        useDensity=OFF
+    )
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
 thickness_multiplier = 10
@@ -221,27 +242,11 @@ model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Define loading steps
-
-model.BuckleStep(
-    name='Buckle-Step',
-    previous='Initial',
-    numEigen=5,
-    maxIterations=500
-)
-
-# model.StaticStep(
-#    name='Buckle-Step',
-#    previous='Initial',
-#    nlgeom=OFF
-# )
-
-# ----------------------------------------------------------------------------------------------------------------------------------
 
 face_seed_map = {
-    'PlateFace': panel.mesh_plate,
-    'WebFaces': panel.mesh_longitudinal_web,
-    'FlangeFaces': panel.mesh_longitudinal_flange,
+    'plate_face': panel.mesh_plate,
+    'web_faces': panel.mesh_longitudinal_web,
+    'flange_faces': panel.mesh_longitudinal_flange,
 }
 
 mesh_from_faces(model.parts['plate'], face_seed_map)
@@ -276,9 +281,9 @@ T_inv_web = np.array([
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Assign sections to the original geometry prior to creating the orphan mesh
-assign_section(container= p, section_name = "t-{}".format(panel.t_panel), method='sets', set_name = 'PlateFace')
-assign_section(container= p, section_name = "t-{}".format(panel.t_longitudinal_web), method='sets', set_name = 'WebFaces')
-assign_section(container= p, section_name = "t-{}".format(panel.t_longitudinal_flange), method='sets', set_name = 'FlangeFaces')
+assign_section(container= p, section_name = "panel", method='sets', set_name = 'plate_face')
+assign_section(container= p, section_name = "longitudinal_web", method='sets', set_name = 'web_faces')
+assign_section(container= p, section_name = "longitudinal_flange", method='sets', set_name = 'flange_faces')
 
 # Create a mesh part!
 p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
@@ -480,15 +485,27 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Load application
-
 load_nodes = assembly.instances['panel'].nodes.sequenceFromLabels((centroid_labels_free[0],))
 load_set = assembly.Set(name='load_set', nodes=load_nodes)
 load_region = regionToolset.Region(nodes=load_nodes)
 # Create Step Object
 
+model.StaticRiksStep(
+    name='Riks-Step',
+    previous='Initial',
+    nlgeom=ON,
+    initialArcInc=0.01,
+    maxArcInc=1e36,
+    maxNumInc=30,
+    nodeOn=ON,
+    region=load_region,
+    dof=1,
+    maximumDisplacement=0.3
+)
+
 model.ConcentratedForce(
     name="Load",
-    createStepName="Buckle-Step",
+    createStepName="Riks-Step",
     region=load_set,
     distributionType=UNIFORM,
     cf1=float(panel.axial_force),
@@ -527,6 +544,3 @@ job = mdb.Job(
 )
 
 job.writeInput()
-
-job.submit(consistencyChecking=OFF)
-job.waitForCompletion()

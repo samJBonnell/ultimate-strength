@@ -1,17 +1,18 @@
-from utils.FEMPipeline import FEMPipeline
-from utils.IO_utils import ModelInput, ModelOutput
-from datetime import datetime
-now = datetime.now()
-print(f"Start Time: {now}")
+import numpy as np
+from tqdm import tqdm
+from scipy.stats import qmc
+from uuid import uuid4
 
-model_name = 'eigen'
-# trial_id = re.sub(r'[:\s\-\.]', '_', str(now))
-trial_id = '1'
-job_name = model_name + "_" + trial_id
+from abq_lib.model_wrapper import ModelWrapper
+from abq_lib.abaqus_imports import ModelClass, ModelOutput
 
-panel = ModelInput(
-    model_name=model_name,
-    job_name=job_name,
+# Specify direction which model we are going to use
+from abq_lib.abaqus_imports import Model_02
+
+base_input = Model_02(
+    model_name='model_02',
+    job_name=str(uuid4()),
+    job_type="eigen",
 
     # Global Geometry
     num_longitudinal = 4,
@@ -43,12 +44,15 @@ panel = ModelInput(
     centroid=13e-03
 )
 
-fem_model = FEMPipeline(
-    model="models\\eigen.py",
-    input_path="data\\input.jsonl", 
-    output_path="data\\output.jsonl",
-    input_class=ModelInput,
-    output_class=ModelOutput)
-
-fem_model.write(panel)
-fem_model.run()
+fem_model = ModelWrapper(
+    model="abaqus_scripts/models/model_02_eigen.py",
+    input_path= "data/model_02/eigen/input.jsonl",
+    output_path="data/model_02/eigen/output.jsonl",
+    input_class=ModelClass,
+    output_class=ModelOutput
+)
+try:
+    fem_model.write(base_input)
+    fem_model.run() 
+except Exception as e:
+    print(f"Evaluation failed: {e}")

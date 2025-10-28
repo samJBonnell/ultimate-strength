@@ -46,15 +46,33 @@ def clean_json(obj):
     else:
         return obj
     
-def load_last_input(filepath):
-    """Load the last ModelInput from a JSONL file"""
-    with open(filepath) as f:
-        last_line = None
-        for line in f:
-            if line.strip():
-                last_line = line
-    if not last_line:
-        raise ValueError("No valid input found.")
-    data = json.loads(last_line)
+def load_input(file_path, index=-1):
+    """
+    Load a ModelClass input from JSONL file.
+    
+    Args:
+        file_path: Path to the JSONL file
+        index: Line index to load (0-based). Use -1 for last line (default)
+    
+    Returns:
+        ModelClass instance
+    """
+    with open(file_path) as f:
+        lines = [line.strip() for line in f if line.strip()]
+    
+    if not lines:
+        raise ValueError("No valid input found in file.")
+    
+    if index < -1 or index >= len(lines):
+        raise ValueError("Index {} out of range. File has {} entries.".format(index, len(lines)))
+    
+    target_line = lines[index]
+    
+    data = json.loads(target_line)
     data = clean_unicode(data)
-    return ModelClass.from_dict(data) 
+    return ModelClass.from_dict(data)
+
+
+def load_last_input(file_path):
+    """Load the last ModelInput from a JSONL file (convenience wrapper)"""
+    return load_input(file_path, index=-1)

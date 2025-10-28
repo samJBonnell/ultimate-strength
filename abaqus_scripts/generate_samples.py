@@ -4,7 +4,10 @@ from scipy.stats import qmc
 from uuid import uuid4
 
 from abq_lib.model_wrapper import ModelWrapper
-from abq_lib.abaqus_imports import FlatPanel, ModelClass, ModelOutput
+from abq_lib.abaqus_imports import ModelClass, ModelOutput
+
+# Specify direction which model we are going to use
+from abq_lib.abaqus_imports import Model_01
 
 n_samples = 250
 dim = 5
@@ -32,8 +35,8 @@ samples = qmc.scale(raw_samples, bounds[:, 0], bounds[:, 1])
 # Static / baseline input values
 # -------------------------------
 
-base_input = FlatPanel(
-    model_name='flat_panel',
+base_input = Model_01(
+    model_name='model_01',
     job_name="",
 
     # Global Geometry
@@ -58,9 +61,9 @@ base_input = FlatPanel(
 
 # Create handeler for FEM model
 fem_model = ModelWrapper(
-    model="abaqus_scripts/models/flat_panel.py",
-    input_path="data/input.jsonl",
-    output_path="data/output.jsonl",
+    model="abaqus_scripts/models/model_01.py",
+    input_path= "data/model_01/input.jsonl",
+    output_path="data/model_01/output.jsonl",
     input_class=ModelClass,
     output_class=ModelOutput
 )

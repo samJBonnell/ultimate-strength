@@ -34,7 +34,7 @@ try:
     from us_lib.abq_model.classes import ModelClass
     from us_lib.abq_model.output import ModelOutput, Element, Stress
 
-    from us_lib.abq_model.classes import FlatPanel
+    from us_lib.abq_model.classes import Model_01, Model_02, Model_03
         
 except ImportError as e:
     print("Import error: {}".format(e))
@@ -45,8 +45,8 @@ __all__ = [
     'ModelClass', 
     'ModelOutput', 
     'Element', 
-    'Stress', 
-    'FlatPanel', 
-    'write_trial_ndjson', 
-    'load_last_input'
+    'Stress',  
+    'Model_01',
+    'Model_02',
+    'Model_03'
 ]
