@@ -35,12 +35,12 @@ class ModelInput(object):
     def __repr__(self):
         return "{}({})".format(self.__class__.__name__, self.to_dict())
 
-@ModelInput.register("simple_plate")
-class SimplePlateInput(ModelInput):
+@ModelInput.register("flat_panel")
+class FlatPanelInput(ModelInput):
     def __init__(self, model_name, job_name, width, length, t_panel,
                  pressure, pressure_location, pressure_patch_size, mesh_plate,
                  numCpus=1, numGpus=0):
-        super(SimplePlateInput, self).__init__(model_name, job_name, numCpus, numGpus)
+        super(FlatPanelInput, self).__init__(model_name, job_name, numCpus, numGpus)
         self.width = width
         self.length = length
         self.t_panel = t_panel
@@ -62,6 +62,8 @@ class SimplePlateInput(ModelInput):
             pressure_location=d["pressure_location"],
             pressure_patch_size=d["pressure_patch_size"],
             mesh_plate=d["mesh_plate"],
+            
+            # Variables inherited from the base class
             numCpus=d.get("numCpus", 1),
             numGpus=d.get("numGpus", 0),
         )
@@ -97,6 +99,8 @@ class StiffenedPanelInput(ModelInput):
             t_longitudinal_flange=d["t_longitudinal_flange"],
             pressure=d["pressure"],
             mesh_plate=d["mesh_plate"],
+
+            # Variables inherited from the base class
             numCpus=d.get("numCpus", 1),
             numGpus=d.get("numGpus", 0),
         )

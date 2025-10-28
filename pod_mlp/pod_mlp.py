@@ -293,7 +293,7 @@ def main():
     coef_errors = np.abs(y_test - y_pred)
     print(f"\nCoefficient-wise MAE: {coef_errors.mean():.4f}")
     print(f"Max coefficient error: {coef_errors.max():.4f} (mode {coef_errors.argmax()})")
-
+    
     # Plot comparison: Ground Truth vs MLP Prediction vs FEM
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
 
@@ -373,15 +373,15 @@ def main():
     plt.tight_layout()
     plt.show()
 
-    if args.save == 1:
-        os.makedirs('models', exist_ok=True)
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'input_size': len(parameter_names),
-            'num_layers': args.num_layers,
-            'layer_size': args.layer_size,
-            'output_size': args.num_modes,
-        }, f'models/model_epoch_{epoch}_{timestamp}.pth')
+    # if args.save == 1:
+    #     os.makedirs('models', exist_ok=True)
+    #     torch.save({
+    #         'model_state_dict': model.state_dict(),
+    #         'input_size': len(parameter_names),
+    #         'num_layers': args.num_layers,
+    #         'layer_size': args.layer_size,
+    #         'output_size': args.num_modes,
+    #     }, f'models/model_epoch_{epoch}_{timestamp}.pth')
 
 if __name__ == '__main__':
     main()

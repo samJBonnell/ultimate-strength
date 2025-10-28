@@ -1,10 +1,11 @@
 import numpy as np
+from tqdm import tqdm
 from scipy.stats import qmc
 from uuid import uuid4
 
-from abaqus_imports import FEMPipeline
-from abaqus_imports import ModelInput, ModelOutput
-from tqdm import tqdm
+from us_lib.new_io import FlatPanelInput
+from abq_lib.model_wrapper import ModelWrapper
+from abq_lib.abaqus_imports import ModelInput, ModelOutput
 
 n_samples = 250
 dim = 5
@@ -31,8 +32,9 @@ samples = qmc.scale(raw_samples, bounds[:, 0], bounds[:, 1])
 # -------------------------------
 # Static / baseline input values
 # -------------------------------
-base_input = ModelInput(
-    model_name='panel',
+
+base_input = FlatPanelInput(
+    model_name='flat_panel',
     job_name="",
 
     # Global Geometry
@@ -56,7 +58,7 @@ base_input = ModelInput(
 )
 
 # Create handeler for FEM model
-fem_model = FEMPipeline(
+fem_model = ModelWrapper(
     model="abaqus_scripts/models/flat_panel.py",
     input_path="data/input.jsonl",
     output_path="data/output.jsonl",
@@ -76,4 +78,5 @@ for i, sample in enumerate(tqdm(samples, desc="Evaluating panel samples")):
         fem_model.write(variable_input)
         fem_model.run() 
     except Exception as e:
-        print(f"[{i}] Evaluation failed: {e}")
+        # print(f"[{i}] Evaluation failed: {e}")
+        print("[{}] Evaluation failed: {}".format(i, e))

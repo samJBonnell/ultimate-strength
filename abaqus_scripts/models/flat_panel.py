@@ -35,58 +35,92 @@ import odbAccess
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 import sys
-import os
 from os.path import join, exists
+import os
 
-# Define project root (change this to match your setup)
-project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate-strength'
-sys.path.insert(0, project_root)
+# Get project root from environment variable (set by ModelWrapper) or fallback to hardcoded
+project_root = os.environ.get('PROJECT_ROOT')
+
+if project_root is None:
+    # Fallback for manual CAE runs - hardcode it
+    project_root = 'C:/Users/sbonnell/Desktop/lase/projects/ultimate_strength'
+    print("Running manually from CAE - using hardcoded project root")
+else:
+    print("Running via ModelWrapper - using PROJECT_ROOT from environment")
+
+# Add abaqus_scripts to path
+abaqus_dir = join(project_root, 'abaqus_scripts')
+if abaqus_dir not in sys.path:
+    sys.path.insert(0, abaqus_dir)
 
 # Define paths
 working_directory = join(project_root, 'abaqus_scripts', 'working')
 input_directory = join(project_root, 'data', 'input.jsonl')
 output_directory = join(project_root, 'data', 'output.jsonl')
 
+# Debug: Print paths and check if abq_lib exists
+print("Working dir: {}".format(working_directory))
+print("Input dir: {}".format(input_directory))
+print("Output dir: {}".format(output_directory))
+print("Abaqus dir: {}".format(abaqus_dir))
+print("sys.path[0]: {}".format(sys.path[0]))
+
+# Check if abq_lib directory exists
+abq_lib_path = join(abaqus_dir, 'abq_lib')
+print("Checking abq_lib at: {}".format(abq_lib_path))
+print("abq_lib exists: {}".format(exists(abq_lib_path)))
+
+# Check if __init__.py exists in abq_lib
+init_file = join(abq_lib_path, '__init__.py')
+print("__init__.py exists: {}".format(exists(init_file)))
+
+# List contents of abq_lib
+if exists(abq_lib_path):
+    print("Contents of abq_lib: {}".format(os.listdir(abq_lib_path)))
+
 # Create working directory if it doesn't exist
 if not exists(working_directory):
     os.makedirs(working_directory)
 
-# Change to working directory
-os.chdir(working_directory)
-# Configure coordinate output
-session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
-
-# ----------------------------------------------------------------------------------------------------------------------------------
-# Design Parameters
-# Load the variables from the last line of the input jsonl
-from us_lib.abaqus_io import from_dict, ThicknessGroup, ModelOutput, Element, Stress
-from us_lib.data.reader import write_trial_ndjson
+# Now import from abq_lib
+from abq_lib.abaqus_imports import ModelOutput, Element, Stress
+from abq_lib.abaqus_writer import write_trial_ndjson, load_last_input
 
 from abq_lib.node_utilities import get_nodes
 from abq_lib.mesh_utilities import mesh_from_faces
 from abq_lib.section_utilities import assign_section
 
-with open(input_directory) as f:
-    last_line = [l for l in f if l.strip()][-1]
-    data = json.loads(last_line)
+# Configure coordinate output
+session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
-panel = from_dict(data)
+project_root = os.path.abspath(project_root)
+working_directory = os.path.abspath(join(project_root, working_directory))
+
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Create the panel object
+panel = load_last_input(input_directory)
+
+# Change to working directory
+os.chdir(working_directory)
+
+model_name = panel.model_name
+job_name = panel.job_name
 
 # Creation of a list used to create section assignments for each component of the panel
-thicknesses = ThicknessGroup(
-    panel=panel.t_panel,
-)
+component_thickness_map = {
+    'panel': panel.t_panel
+}
 
-ThicknessList = thicknesses.unique()
-
-model_name = str(panel.model_name)
-job_name = str(panel.job_name)
+for component, thickness in component_thickness_map.items():
+    if thickness is None:
+        raise ValueError("{} thickness not set!".format(component))
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Start of Definition of Panel Model
 
 # Create model object
-model = mdb.Model(name=model_name)
+print(type(model_name))
+model = mdb.Model(name=str(model_name))
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -150,22 +184,23 @@ material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
-for index in range(len(ThicknessList)):
+for component, thickness in component_thickness_map.items():
     model.HomogeneousShellSection(
-    idealization=NO_IDEALIZATION,
-    integrationRule=SIMPSON,
-    material='steel',
-    name="t-{}".format(ThicknessList[index]),
-    nodalThicknessField='',
-    numIntPts=5,
-    poissonDefinition=DEFAULT,
-    preIntegrate=OFF,
-    temperature=GRADIENT,
-    thickness=float(ThicknessList[index]),
-    thicknessField='',
-    thicknessModulus=None, 
-    thicknessType=UNIFORM, 
-    useDensity=OFF)
+        idealization=NO_IDEALIZATION,
+        integrationRule=SIMPSON,
+        material='steel',
+        name=component,
+        nodalThicknessField='',
+        numIntPts=5,
+        poissonDefinition=DEFAULT,
+        preIntegrate=OFF,
+        temperature=GRADIENT,
+        thickness=float(thickness),
+        thicknessField='',
+        thicknessModulus=None, 
+        thicknessType=UNIFORM, 
+        useDensity=OFF
+    )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -221,7 +256,7 @@ T_inv_web = np.array([
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Assign sections to the original geometry prior to creating the orphan mesh
-assign_section(container= p, section_name = "t-{}".format(panel.t_panel), method='sets', set_name = 'PlateFace')
+assign_section(container= p, section_name = 'panel', method='sets', set_name = 'PlateFace')
 
 # Create a mesh part!
 p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
@@ -301,6 +336,9 @@ model.ConcentratedForce(
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Create Job
+print("numCpus: {} -> numCpus Type: {}".format(panel.numCpus, type(panel.numCpus)))
+print("numGpus: {} -> numGpus Type: {}".format(panel.numGpus, type(panel.numGpus)))
+print("job_name: {} -> job_name Type: {}".format(job_name, type(job_name)))
 
 job = mdb.Job(
     atTime=None,
@@ -317,8 +355,8 @@ job = mdb.Job(
     multiprocessingMode=DEFAULT,
     name=job_name,
     nodalOutputPrecision=SINGLE,
-    numCpus=int(panel.numCpus),
-    numGPUs=int(panel.numGpus),
+    numCpus=panel.numCpus,
+    numGPUs=panel.numGpus,
     queue=None,
     resultsFormat=ODB,
     scratch='',
@@ -326,14 +364,20 @@ job = mdb.Job(
     userSubroutine='',
     waitHours=0,
     waitMinutes=0,
-    numDomains=int(panel.numCpus)
+    numDomains=panel.numCpus
 )
 
 job.submit(consistencyChecking=OFF)
 job.waitForCompletion()
 
-# Extract the Von Mises stress for each element in the 
-odb = odbAccess.openOdb(path="{}.odb".format(job_name), readOnly=True)
+# Change back to the project root so that we can access the proper file structure
+os.chdir(project_root)
+
+# Capture the file in the 'working dir' to open the odb
+working_file = join(working_directory, "{}.odb".format(job_name))
+print("Working file: {}".format(working_file))
+
+odb = odbAccess.openOdb(path=working_file, readOnly=True)
 stressTensor = odb.steps['Step-1'].frames[-1].fieldOutputs['S'].getSubset(position=INTEGRATION_POINT)
 vonMisesStress = stressTensor.getScalarField(invariant=MISES)
 
