@@ -194,7 +194,7 @@ for eps in eps_plastic_range:
     plastic_data.append((stress, eps_L + eps))  # plastic strain includes plateau
 
 # Assign to material
-material.Plastic(table=plastic_data)
+# material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
@@ -293,18 +293,53 @@ p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
 assembly.regenerate()
 capture_offset = 0.001
 
-# The centroid is based on the half-thickness of the plates
-A_panel = panel.width * panel.t_panel
-A_web = (panel.h_longitudinal_web - (panel.t_panel + panel.t_longitudinal_flange) / 2) * panel.t_longitudinal_web * panel.num_longitudinal
-A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
+# # The centroid is based on the half-thickness of the plates
+# A_panel = panel.width * panel.t_panel
+# A_web = (panel.h_longitudinal_web - (panel.t_panel + panel.t_longitudinal_flange) / 2) * panel.t_longitudinal_web * panel.num_longitudinal
+# A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
 
-# The plate is instantiated at (0, 0), therefore, the centroid is simply 0
-y_panel = 0.0
-y_web = panel.h_longitudinal_web / 2
-y_flange = panel.h_longitudinal_web
+# # The plate is instantiated at (0, 0), therefore, the centroid is simply 0
+# y_panel = 0.0
+# y_web = panel.h_longitudinal_web / 2
+# y_flange = panel.h_longitudinal_web
+
+
+case_number = 3
+
+# Case One
+if case_number == 1:
+    A_p = panel.t_panel * panel.width
+    A_w = 4 * panel.t_longitudinal_web * panel.h_longitudinal_web
+    A_f = 4 * panel.t_longitudinal_flange * panel.w_longitudinal_flange
+
+    y_p = (1/2) * panel.t_panel
+    y_w = (1/2) * (panel.h_longitudinal_web + panel.t_panel)
+    y_f = panel.h_longitudinal_web + (1/2) * panel.t_panel
+
+# Case Two
+elif case_number == 2:
+    A_p = panel.t_panel * panel.width
+    A_w = 4 * panel.t_longitudinal_web * (panel.h_longitudinal_web - (1/2)*(panel.t_panel + panel.t_longitudinal_flange))
+    A_f = 4 * panel.t_longitudinal_flange * panel.w_longitudinal_flange
+
+    y_p = (1/2) * panel.t_panel
+    y_w = (1/2) * (panel.h_longitudinal_web + panel.t_panel)
+    y_f = panel.h_longitudinal_web + (1/2) * panel.t_panel
+
+# Case Three
+elif case_number == 3:
+    A_p = panel.t_panel * panel.width
+    A_w = 4 * panel.t_longitudinal_web * (panel.h_longitudinal_web - (1/2)*(panel.t_panel + panel.t_longitudinal_flange))
+    A_f = 4 * panel.t_longitudinal_flange * panel.w_longitudinal_flange
+
+    y_p = (1/2) * panel.t_panel
+    y_w = panel.h_longitudinal_web + (1/2) * panel.t_panel
+    y_f = (1/2) * panel.w_longitudinal_flange + panel.h_longitudinal_web + panel.t_panel
+else:
+    raise ValueError("Failed to capture a centroid case")
 
 if panel.centroid == -1:
-    centroid = (A_panel * y_panel + A_web * y_web + A_flange * y_flange) / (A_panel + A_web + A_flange)
+    centroid = (A_p * y_p + A_w * y_w + A_f * y_f) / (A_p + A_w + A_f) - ((1/2) * panel.t_panel)
 else:
     centroid = panel.centroid
 
@@ -458,11 +493,11 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 
 # Plate-edge BC (zero motion in x3 direction)
 boundary_regions = [
-    # X-Aligned BCs
+    # Y-Aligned BCs
     [float(panel.length)/2 - capture_offset, float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, capture_offset],
     [-float(panel.length)/2 - capture_offset, -float(panel.length)/2 + capture_offset, -float(panel.width)/2, float(panel.width)/2, -capture_offset, capture_offset],
         
-    # Y-Aligned BCs
+    # X-Aligned BCs
     [-float(panel.length)/2, float(panel.length)/2, float(panel.width)/2 - capture_offset, float(panel.width)/2 + capture_offset, -capture_offset, capture_offset],
     [-float(panel.length)/2, float(panel.length)/2, -float(panel.width)/2 - capture_offset, -float(panel.width)/2 + capture_offset, -capture_offset, capture_offset]
     ]
@@ -482,6 +517,48 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 fixed_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(centroid_labels_fixed)
 fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0)
+
+# Teguh Boundary Conditions
+# Capture the T-edges
+labels = []
+for index, region in enumerate(boundary_regions[2:]):
+    _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
+    labels.extend(new_labels)
+
+teguh_boundary_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
+plate_edge_set = assembly.Set(name='teguh-edge', nodes=teguh_boundary_nodes)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
+
+# Teguh Linked Sides
+# Points on either side of the panel that we want to capture get_nodes_along_axis()
+# point_one = np.array([[0.0], [panel.width / 2], [0.0]])
+# point_two = np.array([[0.0], [-panel.width / 2], [0.0]])
+
+# # Labels of the nodes we have captured along the x-axis of the free ends of the panel
+# _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=1, instance_name='panel')
+# _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=1, instance_name='panel')
+
+# assembly.Set(name = 'Teguh-1-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_one[0],)))
+# assembly.Set(name = 'Teguh-1-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_one[1:]))
+
+# assembly.Set(name = 'Teguh-2-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_two[0],)))
+# assembly.Set(name = 'Teguh-2-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_two[1:]))
+
+# equation_sets(
+#     model=model,
+#     name='Teguh-1',
+#     set_one='Teguh-1-Follower',
+#     set_two='Teguh-1-Main',
+#     linked_dof=[2]
+# )
+
+# equation_sets(
+#     model=model,
+#     name='Teguh-2',
+#     set_one='Teguh-2-Follower',
+#     set_two='Teguh-2-Main',
+#     linked_dof=[2]
+# )
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Load application

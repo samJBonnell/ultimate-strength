@@ -6,6 +6,7 @@ Model_01: Variable thickness, varibly patch-loaded simply supported panel
 Model_02: Single direction stiffened panel subjected to axial force
     Usage: Buckling analysis - eigen and riks
 Model_03: Complete stiffened panel subjected to uniform hydrostatic pressure
+
 """
 
 class ModelClass(object):

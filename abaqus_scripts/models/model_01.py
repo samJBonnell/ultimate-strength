@@ -368,11 +368,8 @@ for index in range(1, len(vonMisesStress.bulkDataBlocks), 2):
     offset += element_labels[-1]
 
 # Create and save ModelOutput
-model_output = ModelOutput(
-    job_name=job_name,
-    steps=["Step-1"],
-    element_counts=element_counts
-)
+model_output = ModelOutput(job_name = job_name)
+model_output.set_element_count(element_counts)
 model_output.add_step("Step-1", stress_field)
 
 write_trial_ndjson(model_output, output_directory)

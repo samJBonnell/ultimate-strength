@@ -9,9 +9,12 @@ from abq_lib.abaqus_imports import ModelClass, ModelOutput
 # Specify direction which model we are going to use
 from abq_lib.abaqus_imports import Model_02
 
+
+job_name = str(uuid4())
+
 base_input = Model_02(
     model_name='model_02',
-    job_name=str(uuid4()),
+    job_name=job_name,
     job_type="eigen",
 
     # Global Geometry
@@ -26,7 +29,7 @@ base_input = Model_02(
     t_longitudinal_flange = 0.004,
 
     # Local stiffener geometry
-    h_longitudinal_web = 0.125 + ((0.010 + 0.004) / 2),
+    h_longitudinal_web = 0.125 + (1/2) * (0.010 + 0.004),
     w_longitudinal_flange = 0.100,
 
     # Applied Pressure
@@ -41,8 +44,11 @@ base_input = Model_02(
     numCpus=4,
     numGpus=0,
 
-    centroid=13e-03
+    centroid=-1
 )
+
+print("Eigen analysis file: {}".format(job_name))
+
 
 fem_model = ModelWrapper(
     model="abaqus_scripts/models/model_02_eigen.py",

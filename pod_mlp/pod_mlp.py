@@ -86,8 +86,8 @@ def main():
     # Load data records
     records = load_records(input_path, output_path)
     stress_vectors = extract_attributes(records, attributes= ['vm'])['vm']
-    element_indices = [r.output.element_counts for r in records]
-
+    element_indices = [r.output.element_count for r in records]
+    
     # Extract parameters
     parameters = []
     for rec in records:
