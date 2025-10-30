@@ -48,6 +48,8 @@
 *.sta
 events.*
 *.simdir
+*.7
+*.exception
 
 # Data directory #
 ######################
