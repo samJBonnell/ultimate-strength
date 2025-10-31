@@ -49,8 +49,8 @@ if abaqus_dir not in sys.path:
 
 # Define paths
 working_directory = join(project_root, 'abaqus_scripts', 'working')
-input_directory = join(project_root, 'data', 'model_02', 'eigen', 'input.jsonl')
-output_directory = join(project_root,'data', 'model_02', 'eigen', 'output.jsonl')
+input_directory = join(project_root, 'data', 'cpsc540', 'set_1', 'input.jsonl')
+output_directory = join(project_root,'data', 'cpsc540', 'set_1', 'output.jsonl')
 
 # Create working directory if it doesn't exist
 if not exists(working_directory):
@@ -320,7 +320,7 @@ capture_offset = 0.001
 # y_flange = panel.h_longitudinal_web
 
 
-case_number = 3
+case_number = 1
 
 # Case One
 if case_number == 1:
@@ -534,16 +534,16 @@ fixed_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(centroid_labe
 fixed_centroid_BC = assembly.Set(name='Fixed-BC', nodes=fixed_nodes)
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Fixed-BC', region=fixed_centroid_BC, u1=0.0)
 
-# Teguh Boundary Conditions
-# Capture the T-edges
-labels = []
-for index, region in enumerate(boundary_regions[2:]):
-    _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
-    labels.extend(new_labels)
+# # Teguh Boundary Conditions
+# # Capture the T-edges
+# labels = []
+# for index, region in enumerate(boundary_regions[2:]):
+#     _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
+#     labels.extend(new_labels)
 
-teguh_boundary_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
-plate_edge_set = assembly.Set(name='teguh-edge', nodes=teguh_boundary_nodes)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
+# teguh_boundary_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
+# plate_edge_set = assembly.Set(name='teguh-edge', nodes=teguh_boundary_nodes)
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
 
 # Teguh Linked Sides
 # Points on either side of the panel that we want to capture get_nodes_along_axis()
@@ -633,27 +633,27 @@ job.waitForCompletion()
 # Export the eigenvalues from the .odb file
 # ----------------------------------------------------------------
 
-# # Change back to the project root so that we can access the proper file structure
-# os.chdir(project_root)
+# Change back to the project root so that we can access the proper file structure
+os.chdir(project_root)
 
-# # Capture the file in the 'working dir' to open the odb
-# working_file = join(working_directory, "{}.odb".format(job_name))
+# Capture the file in the 'working dir' to open the odb
+working_file = join(working_directory, "{}.odb".format(job_name))
 
-# odb = odbAccess.openOdb(path=working_file, readOnly=True)
-# frames = odb.steps['Buckle-Step'].frames
-# description = [frames[i].description.split() for i in range(len(frames))]
+odb = odbAccess.openOdb(path=working_file, readOnly=True)
+frames = odb.steps['Buckle-Step'].frames
+description = [frames[i].description.split() for i in range(len(frames))]
 
-# # Naive assumption that Mode will always precede EigenValue
-# eigenvalues = []
-# for state in range(1, len(frames)):
-#     eigenvalues.append({
-#         'mode': description[state][1],
-#         'eigenvalue': description[state][-1]
-#     })
+# Naive assumption that Mode will always precede EigenValue
+eigenvalues = []
+for state in range(1, len(frames)):
+    eigenvalues.append({
+        'mode': description[state][1],
+        'eigenvalue': description[state][-1]
+    })
 
-# # Create and save ModelOutput
-# model_output = ModelOutput(job_name = job_name)
-# model_output.add_metadata("eigenvalues", eigenvalues)
+# Create and save ModelOutput
+model_output = ModelOutput(job_name = job_name)
+model_output.add_metadata("eigenvalues", eigenvalues)
 
-# write_trial_ndjson(model_output, output_directory)
-# odb.close()
+write_trial_ndjson(model_output, output_directory)
+odb.close()
