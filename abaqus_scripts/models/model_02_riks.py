@@ -194,7 +194,7 @@ for eps in eps_plastic_range:
     plastic_data.append((stress, eps_L + eps))  # plastic strain includes plateau
 
 # Assign to material
-# material.Plastic(table=plastic_data)
+material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
@@ -217,7 +217,7 @@ for component, thickness in component_thickness_map.items():
     )
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 10
+thickness_multiplier = 15
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
@@ -293,18 +293,7 @@ p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
 assembly.regenerate()
 capture_offset = 0.001
 
-# # The centroid is based on the half-thickness of the plates
-# A_panel = panel.width * panel.t_panel
-# A_web = (panel.h_longitudinal_web - (panel.t_panel + panel.t_longitudinal_flange) / 2) * panel.t_longitudinal_web * panel.num_longitudinal
-# A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
-
-# # The plate is instantiated at (0, 0), therefore, the centroid is simply 0
-# y_panel = 0.0
-# y_web = panel.h_longitudinal_web / 2
-# y_flange = panel.h_longitudinal_web
-
-
-case_number = 3
+case_number = 1
 
 # Case One
 if case_number == 1:
@@ -379,10 +368,10 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_max': 0.5,
-        'y_min': 0.001,
+        'y_min': -0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
-    depth_of_search=2
+    depth_of_search=3
     )
 
 # Set the local thickness of the fixed side geometry
@@ -394,9 +383,10 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_min': 2.5,
-        'y_min': 0.001,
-        'y_max': panel.mesh_longitudinal_web * 3},
-    depth_of_search=2
+        'y_min': -0.001,
+        'y_max': panel.mesh_longitudinal_web * 3
+        },
+    depth_of_search=3
     )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -520,17 +510,17 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 
 # Teguh Boundary Conditions
 # Capture the T-edges
-labels = []
-for index, region in enumerate(boundary_regions[2:]):
-    _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
-    labels.extend(new_labels)
-
-teguh_boundary_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
-plate_edge_set = assembly.Set(name='teguh-edge', nodes=teguh_boundary_nodes)
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
-
+# labels = []
+# for index, region in enumerate(boundary_regions[2:]):
+    # _, new_labels = get_nodes(assembly, instance_name='panel', bounds=region)
+    # labels.extend(new_labels)
+# 
+# teguh_boundary_nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels)
+# plate_edge_set = assembly.Set(name='teguh-edge', nodes=teguh_boundary_nodes)
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
+# 
 # Teguh Linked Sides
-# Points on either side of the panel that we want to capture get_nodes_along_axis()
+# # Points on either side of the panel that we want to capture get_nodes_along_axis()
 # point_one = np.array([[0.0], [panel.width / 2], [0.0]])
 # point_two = np.array([[0.0], [-panel.width / 2], [0.0]])
 
@@ -573,11 +563,7 @@ model.StaticRiksStep(
     nlgeom=ON,
     initialArcInc=0.01,
     maxArcInc=1e36,
-    maxNumInc=30,
-    nodeOn=ON,
-    region=load_region,
-    dof=1,
-    maximumDisplacement=0.3
+    maxNumInc=30
 )
 
 model.ConcentratedForce(

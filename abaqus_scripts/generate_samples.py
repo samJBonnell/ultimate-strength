@@ -52,7 +52,7 @@ base_input = Model_01(
     pressure_patch_size = [0.1, 0.1],
 
     # Mesh Settings
-    mesh_plate = 0.0277,
+    mesh_plate = 0.0277,    
 
     # Model Parameters
     numCpus=4,

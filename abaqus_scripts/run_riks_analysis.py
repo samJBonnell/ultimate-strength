@@ -46,7 +46,7 @@ base_input = Model_02(
     t_longitudinal_flange = 0.004,
 
     # Local stiffener geometry
-    h_longitudinal_web = 0.125 + (1/2) * (0.010 + 0.004),
+    h_longitudinal_web = 0.125,
     w_longitudinal_flange = 0.100,
 
     # Applied Pressure
@@ -54,7 +54,7 @@ base_input = Model_02(
 
     # Mesh Settings
     mesh_plate = 0.02,
-    mesh_longitudinal_web = 20.833E-03,
+    mesh_longitudinal_web = 15e-03,
     mesh_longitudinal_flange = 0.025,
 
     # Model Parameters

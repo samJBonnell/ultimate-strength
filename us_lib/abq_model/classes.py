@@ -190,42 +190,129 @@ class Model_02(ModelClass):
         )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
-#   COMPLETE STIFFENED PANEL - UNUSED CURRENTLY 
+#  DOUBLE DIRECTION STIFFENED PANEL - BUCKLING EIGEN, BUCKLING RIKS
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 @ModelClass.register("model_03")
 class Model_03(ModelClass):
-    def __init__(self, model_name, job_name, width, length,
-                 t_panel, t_transverse_web, t_transverse_flange,
-                 t_longitudinal_web, t_longitudinal_flange,
-                 pressure, mesh_plate, numCpus=1, numGpus=0):
+    def __init__(   self, 
+                    model_name, 
+                    job_name,
+                    job_type,
+
+                    # Geometry 
+                    width,
+                    length,
+                    num_longitudinal,
+                    num_transverse,
+
+                    # Thickness
+                    t_panel,
+                    t_longitudinal_web,
+                    t_longitudinal_flange,
+                    t_transverse_web,
+                    t_transverse_flange,
+                    
+                    # Internal dimensions
+                    h_longitudinal_web,
+                    w_longitudinal_flange,
+                    h_transverse_web,
+                    w_transverse_flange,
+
+                    # Boundary conditions
+                    axial_force,
+                    
+                    # Mesh
+                    mesh_plate,
+                    mesh_longitudinal_web,
+                    mesh_longitudinal_flange,
+                    mesh_transverse_web,
+                    mesh_transverse_flange,
+
+                    # Modifiers
+                    centroid,
+
+                    # Model parameters
+                    numCpus=1,
+                    numGpus=0
+                ):
         super(Model_03, self).__init__(model_name, job_name, numCpus, numGpus)
+        # Simulation information
+        self.job_type = job_type
+        
+        # Geometry
         self.width = width
         self.length = length
+        self.num_longitudinal = num_longitudinal
+        self.num_transverse = num_transverse
+
+        # Thickness
         self.t_panel = t_panel
-        self.t_transverse_web = t_transverse_web
-        self.t_transverse_flange = t_transverse_flange
         self.t_longitudinal_web = t_longitudinal_web
         self.t_longitudinal_flange = t_longitudinal_flange
-        self.pressure = pressure
+        self.t_transverse_web = t_transverse_web
+        self.t_transverse_flange = t_transverse_flange
+
+        # Internal dimensions
+        self.h_longitudinal_web = h_longitudinal_web
+        self.w_longitudinal_flange = w_longitudinal_flange
+        self.h_transverse_web = h_transverse_web
+        self.w_transverse_flange = w_transverse_flange
+        
+        # Boundary conditions
+        self.axial_force = axial_force
+
+        # Mesh
         self.mesh_plate = mesh_plate
-   
+        self.mesh_longitudinal_web = mesh_longitudinal_web
+        self.mesh_longitudinal_flange = mesh_longitudinal_flange
+        self.mesh_transverse_web = mesh_transverse_web
+        self.mesh_transverse_flange = mesh_transverse_flange
+
+        self.centroid = centroid
+
     @classmethod
     def from_dict(cls, d):
         return cls(
+            
+            # Variables inherited from the base class
             model_name=d["model_name"],
             job_name=d["job_name"],
-            width=d["width"],
-            length=d["length"],
-            t_panel=d["t_panel"],
-            t_transverse_web=d["t_transverse_web"],
-            t_transverse_flange=d["t_transverse_flange"],
-            t_longitudinal_web=d["t_longitudinal_web"],
-            t_longitudinal_flange=d["t_longitudinal_flange"],
-            pressure=d["pressure"],
-            mesh_plate=d["mesh_plate"],
-
-            # Variables inherited from the base class
             numCpus=d.get("numCpus", 1),
             numGpus=d.get("numGpus", 0),
+            
+            job_type = d["job_type"],
+
+            # Geometry
+            width=d["width"],
+            length=d["length"],
+            num_longitudinal = d['num_longitudinal'],
+            num_transverse = d['num_transverse'],
+
+            # Thickness
+            t_panel=d["t_panel"],
+            t_longitudinal_web=d["t_longitudinal_web"],
+            t_longitudinal_flange=d["t_longitudinal_flange"],
+            t_transverse_web = d['t_transverse_web'],
+            t_transverse_flange = d['t_transverse_flange'],
+        
+            # Internal dimensions
+            h_longitudinal_web = d['h_longitudinal_web'],
+            w_longitudinal_flange = d['w_longitudinal_flange'],
+            h_transverse_web = d['h_transverse_web'],
+            w_transverse_flange = d['w_transverse_flange'],
+
+            # Boundary conditions
+            axial_force = d['axial_force'],
+
+            # Mesh
+            mesh_plate=d["mesh_plate"],
+            mesh_longitudinal_web=d["mesh_longitudinal_web"],
+            mesh_longitudinal_flange=d["mesh_longitudinal_flange"],
+            mesh_transverse_web = d['mesh_transverse_web'],
+            mesh_transverse_flange = d['mesh_transverse_flange'],
+
+
+            # Modifiers
+            centroid = d['centroid']
         )

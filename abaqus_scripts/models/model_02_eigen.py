@@ -49,8 +49,8 @@ if abaqus_dir not in sys.path:
 
 # Define paths
 working_directory = join(project_root, 'abaqus_scripts', 'working')
-input_directory = join(project_root, 'data', 'cpsc540', 'set_1', 'input.jsonl')
-output_directory = join(project_root,'data', 'cpsc540', 'set_1', 'output.jsonl')
+input_directory = join(project_root, 'data', 'model_02', 'eigen', 'input.jsonl')
+output_directory = join(project_root,'data', 'model_02', 'eigen', 'output.jsonl')
 
 # Create working directory if it doesn't exist
 if not exists(working_directory):
@@ -194,7 +194,7 @@ for eps in eps_plastic_range:
     plastic_data.append((stress, eps_L + eps))  # plastic strain includes plateau
 
 # Assign to material
-# material.Plastic(table=plastic_data)
+material.Plastic(table=plastic_data)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Section Defintions
@@ -217,7 +217,7 @@ for component, thickness in component_thickness_map.items():
     )
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 10
+thickness_multiplier = 15
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
@@ -252,7 +252,7 @@ model.BuckleStep(
 )
 
 # model.StaticStep(
-#    name='Buckale-Step',
+#    name='Buckle-Step',
 #    previous='Initial',
 #    nlgeom=OFF
 # )
@@ -308,17 +308,6 @@ p = model.parts['plate'].PartFromMesh(name='panel', copySets=TRUE)
 # Find the node closest to the centroid of the face
 assembly.regenerate()
 capture_offset = 0.001
-
-# # The centroid is based on the half-thickness of the plates
-# A_panel = panel.width * panel.t_panel
-# A_web = (panel.h_longitudinal_web - (panel.t_panel + panel.t_longitudinal_flange) / 2) * panel.t_longitudinal_web * panel.num_longitudinal
-# A_flange = panel.w_longitudinal_flange * panel.t_longitudinal_flange * panel.num_longitudinal
-
-# # The plate is instantiated at (0, 0), therefore, the centroid is simply 0
-# y_panel = 0.0
-# y_web = panel.h_longitudinal_web / 2
-# y_flange = panel.h_longitudinal_web
-
 
 case_number = 1
 
@@ -395,7 +384,7 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_max': 0.5,
-        'y_min': 0.001,
+        'y_min': -0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
     depth_of_search=2
@@ -410,8 +399,9 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_min': 2.5,
-        'y_min': 0.001,
-        'y_max': panel.mesh_longitudinal_web * 3},
+        'y_min': -0.001,
+        'y_max': panel.mesh_longitudinal_web * 3
+        },
     depth_of_search=2
     )
 
