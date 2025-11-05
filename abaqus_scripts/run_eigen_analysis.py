@@ -57,7 +57,7 @@ base_input = Model_03(
     num_transverse= 2,
 
     width = 3.0,
-    length = 3.0,
+    length = 6.0,
 
     # Thickness List
     t_panel = 0.010,
@@ -67,7 +67,7 @@ base_input = Model_03(
     t_transverse_flange= 0.002,
 
     # Local stiffener geometry
-    h_longitudinal_web = 0.125,
+    h_longitudinal_web = 0.100,
     w_longitudinal_flange = 0.100,
     h_transverse_web= 0.225,
     w_transverse_flange= 0.100,
@@ -76,11 +76,11 @@ base_input = Model_03(
     axial_force = 1e6,
 
     # Mesh Settings
-    mesh_plate = 0.02,
-    mesh_longitudinal_web = 15e-03,
+    mesh_plate = 0.025,
+    mesh_longitudinal_web = 0.025,
     mesh_longitudinal_flange = 0.025,
-    mesh_transverse_web=0.02,
-    mesh_transverse_flange= 0.01,
+    mesh_transverse_web=0.023,
+    mesh_transverse_flange= 0.025,
 
     # Model Parameters
     numCpus=4,

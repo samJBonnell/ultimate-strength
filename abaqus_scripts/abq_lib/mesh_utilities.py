@@ -43,6 +43,9 @@ def mesh_from_faces(part, face_seed_map, elemShape=QUAD, technique=STRUCTURED,
         Element library (STANDARD, EXPLICIT).
     constraint : symbolic constant
         Edge seeding constraint (FINER, MEDIUM, COARSER).
+    method : str
+        seedEdgeBySize : default
+        seedEdgeByBias : "bias"
     """
 
     # Seed edges based on faces
@@ -65,11 +68,11 @@ def mesh_from_faces(part, face_seed_map, elemShape=QUAD, technique=STRUCTURED,
             part.seedEdgeBySize(edges=edges_to_seed, size=mesh_size, constraint=constraint)
 
     # Apply mesh controls to all faces
-    part.setMeshControls(regions=part.faces[:], technique=technique, elemShape=elemShape)
+    part.setMeshControls(regions=part.faces, technique=technique, elemShape=elemShape)
 
     # Assign element type
     elem_type = ElemType(elemCode=elemCode, elemLibrary=elemLibrary)
-    part.setElementType(regions=(part.faces[:],), elemTypes=(elem_type,))
+    part.setElementType(regions=(part.faces,), elemTypes=(elem_type,))
 
     # Generate mesh
     part.generateMesh()
