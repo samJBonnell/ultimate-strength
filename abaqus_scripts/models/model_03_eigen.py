@@ -10,6 +10,7 @@ import math
 # ABAQUS Prefactory Information
 from abaqus import *
 from abaqusConstants import *
+from sympy import capture
 backwardCompatibility.setValues(includeDeprecated=True, reportDeprecated=False)
 
 # Import module information from ABAQUS
@@ -104,12 +105,14 @@ model = mdb.Model(name=model_name)
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Part Definitions
 # Dimensional definitions
-l_web_spacing = float(panel.width) / (panel.num_longitudinal + 1)
+# l_web_spacing = float(panel.width) / (panel.num_longitudinal + 1)
 t_web_spacing = float(panel.length) / (panel.num_transverse + 1)
 half_width = float(panel.width) / 2
 half_length = float(panel.length) / 2
-l_web_locations = np.arange(-half_width + l_web_spacing, half_width, l_web_spacing)
+
+l_web_locations = np.cumsum(panel.location_longitudinals) - half_width
 t_web_locations = np.arange(-half_length + t_web_spacing, half_length, t_web_spacing)
+
 half_l_flange_width = float(panel.w_longitudinal_flange) / 2
 half_t_flange_width = float(panel.w_transverse_flange) / 2
 
@@ -213,7 +216,7 @@ p_t.Set(faces=all_faces, name="t_web_faces")
 material = model.Material(name='steel')
 
 # Elastic properties
-E = 210e9  # Pa
+E = 205e9  # Pa
 nu = 0.3
 material.Elastic(table=((E, nu),))
 
@@ -338,7 +341,6 @@ T_inv_t = np.array([
     [0, 0, 0, 1]
 ])
 
-
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Assign sections to the original geometry prior to creating the orphan mesh
 assign_section(container= p_l, section_name = "panel", method='sets', set_name = 'plate_face')
@@ -363,14 +365,29 @@ face_seed_map = {
 
 mesh_from_faces(model.parts['transverse'], face_seed_map)
 
-# # Align the mesh of the stiffeners and the panel
-# for index, location in enumerate(l_web_locations):
-#     _, _ = move_closest_nodes_to_axis(part=model.parts['longitudinal'], target_point=(location,0.0,0.0), axis_dof=3, free_dof=1)
+# Align the mesh of the stiffeners and the panel
+for index, location in enumerate(l_web_locations):
+    _, _ = move_closest_nodes_to_axis(part=model.parts['longitudinal'], target_point=(location,0.0,0.0), axis_dof=3, free_dof=1)
 
-# for index, location in enumerate(t_web_locations):
-#     _, _ = move_closest_nodes_to_axis(part=model.parts['longitudinal'], target_point=(0.0,0.0,location), axis_dof=1, free_dof=3)
-#     _, _ = move_closest_nodes_to_axis(part=model.parts['longitudinal'], target_point=(0.0,0.0,location), axis_dof=1, free_dof=3)
+for index, location in enumerate(t_web_locations):
+    # Transfer from the web_locations into the reference frame of the panel
+    web_edge = np.array([
+        [location], 
+        [0.0], 
+        [0.0]
+    ], dtype=float)
+    web_face_point = (
+        float(location),
+        float(panel.h_longitudinal_web),
+        0.0
+    )
+
+    panel_point = homogenous_transform(T_t, web_edge)
+    # Move the panel points to align with the locations of the transverse web
+    _, _ = move_closest_nodes_to_axis(part=model.parts['longitudinal'], target_point=panel_point, axis_dof=1, free_dof=3)
     
+    # Move the mesh on the face of the transverse web to align with the longitudinal web
+    _, _ = move_closest_nodes_to_axis(part=model.parts['transverse'], target_point=web_face_point, axis_dof=3, free_dof=2)
 
 # Create a mesh part!
 longitudinal = model.parts['longitudinal'].PartFromMesh(name='longitudinal', copySets=TRUE)
@@ -382,37 +399,68 @@ assembly.Instance(name = 'transverse', part = model.parts['transverse'], depende
 assembly.rotate(instanceList=['transverse'], axisPoint= (0,0,panel.width / 2), axisDirection= (0,1,0), angle=math.degrees(math.pi / 2))
 assembly.translate(instanceList=['transverse'], vector=(0.0, 0.0, (panel.length - panel.width) / 2))
 
-# assembly.InstanceFromBooleanMerge(
-#     name='panel', 
-#     instances=(assembly.instances['longitudinal'], 
-#                assembly.instances['transverse']),
-#     domain=MESH, 
-#     originalInstances=SUPPRESS,
-#     mergeNodes=NONE,
-#     nodeMergingTolerance=0.01
-# )
+assembly.InstanceFromBooleanMerge(
+    name='panel', 
+    instances=(assembly.instances['longitudinal'], 
+               assembly.instances['transverse']),
+    domain=MESH, 
+    originalInstances=SUPPRESS,
+    mergeNodes=NONE,
+    nodeMergingTolerance=0.001
+)
 
 # Reset the working environment
-# instanceNames = assembly.instances.keys()
-# for instanceName in instanceNames:
-#     del assembly.instances[instanceName]
+instanceNames = assembly.instances.keys()
+for instanceName in instanceNames:
+    del assembly.instances[instanceName]
 
-# # ----------------------------------------------------------------------------------------------------------------------------------
-# face_seed_map = {
-#     'plate_face': panel.mesh_plate,
-#     'l_web_faces': panel.mesh_longitudinal_web,
-#     'l_flange_faces': panel.mesh_longitudinal_flange,
-#     't_web_faces': panel.mesh_transverse_web,
-#     't_flange_faces': panel.mesh_transverse_flange
-# }
-
-# mesh_from_faces(model.parts['panel'], face_seed_map, technique=FREE)
-
-# # ----------------------------------------------------------------------------------------------------------------------------------
-# # Instance Creation
-# assembly.Instance(dependent=ON, name='panel', part=model.parts['panel'])
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Instance Creation
+assembly.Instance(dependent=ON, name='panel', part=model.parts['panel'])
 
 # Position the flange and web properly
-# assembly.rotate(instanceList=['panel'], axisPoint= (0,0,0), axisDirection=(0,0,1), angle=math.degrees(rot_1))
-# assembly.rotate(instanceList=['panel'], axisPoint= (0,0,0), axisDirection=(0,1,0), angle=math.degrees(rot_2))
-# assembly.translate(instanceList=['panel'], vector=(web_displacement, 0.0, 0.0))
+assembly.Instance(dependent=ON, name='panel', part=model.parts['panel'])
+
+# Position the flange and web properly
+assembly.rotate(instanceList=['panel'], axisPoint= (0,0,0), axisDirection=(0,0,1), angle=math.degrees(rot_1))
+assembly.rotate(instanceList=['panel'], axisPoint= (0,0,0), axisDirection=(0,1,0), angle=math.degrees(rot_2))
+assembly.translate(instanceList=['panel'], vector=(web_displacement, 0.0, 0.0))
+
+# Boundary Conditions are more important for this trial:
+# We want to support the entire sides of the panel such as they have in the paper
+
+# ----------------------------------------------------------------------------------------------------------------------------------
+
+# Boundary conditions
+
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Rigid End
+end_nodes, _ = get_nodes(assembly, instance_name='panel', bounds = [panel.length / 2 - capture_offset, panel.length / 2 + capture_offset, -panel.width / 2 - capture_offset, panel.width / 2 + capture_offset, -capture_offset, panel.h_transverse_web + capture_offset])
+constraint_set = assembly.Set(name='fixed_end', nodes=(end_nodes,))
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='fixed_end', region=assembly.sets['fixed_end'], u1 = 0.0, u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+
+# Load End
+load_nodes, load_node_labels = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 - capture_offset, -panel.length / 2 + capture_offset, -panel.width / 2 - capture_offset, panel.width / 2 + capture_offset, -capture_offset, panel.h_transverse_web + capture_offset])
+constraint_set = assembly.Set(name='load_end', nodes=(load_nodes,))
+
+assembly.Set(name = 'Load-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((load_node_labels[0],)))
+assembly.Set(name = 'Load-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(load_node_labels[1:]))
+
+equation_sets(
+    model=model,
+    name='Load-End',
+    set_one='Load-Follower',
+    set_two='Load-Main',
+    linked_dof=[1]
+)
+
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='load_end', region=assembly.sets['load_end'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+
+# Side Supports
+side_nodes_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, l_web_locations[0] - capture_offset, -capture_offset, capture_offset])
+constraint_set = assembly.Set(name='side_nodes_1', nodes=(side_nodes_1,))
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_1`', region=assembly.sets['side_nodes_1'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+
+side_nodes_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, l_web_locations[-1] + capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
+constraint_set = assembly.Set(name='side_nodes_2', nodes=(side_nodes_2,))
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_2`', region=assembly.sets['side_nodes_2'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)

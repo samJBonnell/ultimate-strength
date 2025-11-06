@@ -156,7 +156,7 @@ def find_closest_node_left(container, reference_point, instance_name=None):
     return find_closest_node(container, reference_point, instance_name,
                            restricted_directions=[1, 0, 0])
 
-def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2, restricted_directions=None):
+def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2, restricted_directions=None, verbose = False):
     """Move the closest nodes along the axis_dof direction to target_point along the free_dof direction"""
     # Pass the restricted_directions directly - if they have not been called, they will be None, otherwise, we have a restricted domain
     reference_point, _ = find_closest_node(part, target_point, restricted_directions=restricted_directions)
@@ -177,7 +177,8 @@ def move_closest_nodes_to_axis(part, target_point, axis_dof = 1, free_dof = 2, r
 
         # Move mesh to match this neutral axis location
         part.editNode(nodes=(node,), coordinates=(tuple(coordinates),))
-        print("[move_closest_nodes_to_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
+        if verbose is True:
+            print("[move_closest_nodes_to_axis] Moved node '{}' from location {} to '{}'.".format(node.label, temp_coords, node.coordinates))
 
     labels = [node.label for node in nodes]
     return nodes, labels

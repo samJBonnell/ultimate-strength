@@ -203,8 +203,9 @@ class Model_03(ModelClass):
                     # Geometry 
                     width,
                     length,
-                    num_longitudinal,
                     num_transverse,
+
+                    location_longitudinals,
 
                     # Thickness
                     t_panel,
@@ -243,8 +244,9 @@ class Model_03(ModelClass):
         # Geometry
         self.width = width
         self.length = length
-        self.num_longitudinal = num_longitudinal
         self.num_transverse = num_transverse
+
+        self.location_longitudinals = location_longitudinals
 
         # Thickness
         self.t_panel = t_panel
@@ -286,9 +288,9 @@ class Model_03(ModelClass):
             # Geometry
             width=d["width"],
             length=d["length"],
-            num_longitudinal = d['num_longitudinal'],
             num_transverse = d['num_transverse'],
 
+            location_longitudinals = d['location_longitudinals'],
             # Thickness
             t_panel=d["t_panel"],
             t_longitudinal_web=d["t_longitudinal_web"],
