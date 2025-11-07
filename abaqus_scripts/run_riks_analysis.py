@@ -134,7 +134,7 @@ print("Riks analysis file: {}".format(job_name))
 # Define the imperfection block
 imperfection_block = [
     f'*IMPERFECTION, FILE={imperfection_file}, STEP=1\n',
-    '1, 0.00061\n'
+    '1, 0.004\n'
 ]
 
 # # Define the field output block

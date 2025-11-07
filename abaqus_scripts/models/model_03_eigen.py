@@ -157,30 +157,42 @@ material = model.Material(name='steel')
 E = 205e9  # Pa
 nu = 0.3
 material.Elastic(table=((E, nu),))
-
 rho = 7850
 stp_T = 296.15
-material.Density(table=((rho,float(stp_T)),))
+material.Density(table=((rho, float(stp_T)),))
 
-# Plasticity constants
-sigma0 = 355e6      # Initial yield stress in Pa
-K = 530e6           # Strength coefficient in Pa
-n = 0.26            # Hardening exponent
-eps_L = 0.006       # Plateau strain
+# Engineering stress-strain data
+eng_stress = [
+    335.654807, 336.5632097, 337.4716124, 345.6472369, 354.7312642,
+    368.3573051, 385.6169569, 403.33081, 420.1362604, 441.0295231,
+    454.655564, 463.7395912, 471.4610144, 476.4572294, 479.1824375,
+    479.1824375
+]  # MPa
 
-# Calculate epsilon_0 from equation
-eps_0 = (sigma0 / K)**(1.0 / n) - eps_L
+eng_strain = [
+    0.001515152, 0.015151515, 0.024242424, 0.026136364, 0.028787879,
+    0.032575758, 0.038636364, 0.046212121, 0.056818182, 0.072727273,
+    0.090909091, 0.109848485, 0.134090909, 0.159469697, 0.187878788,
+    0.212878788
+]
+
+# Convert to true stress and true plastic strain
 plastic_data = []
+for sigma_eng, eps_eng in zip(eng_stress, eng_strain):
+    # Convert MPa to Pa and calculate true stress
+    sigma_true = sigma_eng * 1e6 * (1.0 + eps_eng)
+    
+    # Calculate true strain
+    eps_true = math.log(1.0 + eps_eng)
+    
+    # Calculate plastic strain
+    eps_plastic = eps_true - sigma_true / E
+    if eps_plastic >= 0.0:
+        plastic_data.append((sigma_true, eps_plastic))
 
-# Plateau point
-plastic_data.append((sigma0, 0.0))  # (stress, plastic strain = 0)
-plastic_data.append((sigma0, eps_L))  # plateau ends
-
-# Generate points beyond plateau (e.g., 5 more points up to ~0.08 plastic strain)
-eps_plastic_range = [0.01, 0.02, 0.04, 0.06, 0.08]
-for eps in eps_plastic_range:
-    stress = K * (eps_0 + eps)**n
-    plastic_data.append((stress, eps_L + eps))  # plastic strain includes plateau
+if len(plastic_data) > 0:
+    first_stress = plastic_data[0][0]
+    plastic_data[0] = (first_stress, 0.0)
 
 # Assign to material
 material.Plastic(table=plastic_data)
@@ -413,7 +425,7 @@ dp = p.DatumPlaneByThreePoints(
 p.PartitionFaceByDatumPlane(faces=transverse_faces, datumPlane=p.datums[dp.id])
 # del p.features[dp.name]
 
-p.seedPart(size=0.05, deviationFactor=0.1)
+p.seedPart(size=0.025, deviationFactor=0.1)
 p.generateMesh()
 
 # mesh_from_faces(model.parts['panel'], face_seed_map, technique=FREE)
@@ -460,24 +472,33 @@ equation_sets(
 model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='load_end', region=assembly.sets['load_end'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
 
 # Side Supports
-side_nodes_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, l_web_locations[0] - capture_offset, -capture_offset, capture_offset])
+# Global restriction prevents the movement of the global sides, but we can't restrict the motion of the edge of the panel globally
+global_side_set_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, l_web_locations[0] - capture_offset, -capture_offset, capture_offset])
+constraint_set = assembly.Set(name='global_side_set_1', nodes=(global_side_set_1,))
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_1', region=assembly.sets['global_side_set_1'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+
+global_side_set_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, l_web_locations[-1] + capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
+constraint_set = assembly.Set(name='global_side_set_2', nodes=(global_side_set_2,))
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_2', region=assembly.sets['global_side_set_2'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+
+# Apply the local displacement BC to prevent U2 movement
+side_nodes_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, panel.width / 2 - capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
 constraint_set = assembly.Set(name='side_nodes_1', nodes=(side_nodes_1,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_1', region=assembly.sets['side_nodes_1'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_1', region=assembly.sets['side_nodes_1'], u2 = 0.0)
 
-side_nodes_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, l_web_locations[-1] + capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
+side_nodes_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, -panel.width / 2 + capture_offset,  -capture_offset, capture_offset])
 constraint_set = assembly.Set(name='side_nodes_2', nodes=(side_nodes_2,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_2', region=assembly.sets['side_nodes_2'], u2=0.0, u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
-
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_2', region=assembly.sets['side_nodes_2'], u2 = 0.0)
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 # Load Application
 
 # ----------------------------------------------------------------------------------------------------------------------------------
+load_node = assembly.instances['panel'].nodes.sequenceFromLabels((load_node_labels[0],))
+load_region = regionToolset.Region(nodes=load_node)
 
-load_region = regionToolset.Region(nodes=load_nodes)
 # Create Step Object
-
 model.ConcentratedForce(
     name="Load",
     createStepName="Buckle-Step",
