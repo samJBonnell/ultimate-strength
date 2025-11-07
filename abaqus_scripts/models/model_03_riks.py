@@ -50,8 +50,8 @@ if abaqus_dir not in sys.path:
 
 # Define paths
 working_directory = join(project_root, 'abaqus_scripts', 'working')
-input_directory = join(project_root, 'data', 'model_03', 'eigen', 'input.jsonl')
-output_directory = join(project_root,'data', 'model_03', 'eigen', 'output.jsonl')
+input_directory = join(project_root, 'data', 'model_03', 'riks', 'input.jsonl')
+output_directory = join(project_root,'data', 'model_03', 'riks', 'output.jsonl')
 
 # Create working directory if it doesn't exist
 if not exists(working_directory):
@@ -229,22 +229,6 @@ model.HomogeneousShellSection(
 # Assembly & Instances
 model.rootAssembly.DatumCsysByDefault(CARTESIAN)
 assembly = model.rootAssembly
-
-# ----------------------------------------------------------------------------------------------------------------------------------
-# Define loading steps
-
-model.BuckleStep(
-    name='Buckle-Step',
-    previous='Initial',
-    numEigen=1,
-    maxIterations=5000
-)
-
-# model.StaticStep(
-#    name='Buckle-Step',
-#    previous='Initial',
-#    nlgeom=OFF
-# )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -478,9 +462,18 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 load_region = regionToolset.Region(nodes=load_nodes)
 # Create Step Object
 
+model.StaticRiksStep(
+    name='Riks-Step',
+    previous='Initial',
+    nlgeom=ON,
+    initialArcInc=0.01,
+    maxArcInc=1e36,
+    maxNumInc=100
+)
+
 model.ConcentratedForce(
     name="Load",
-    createStepName="Buckle-Step",
+    createStepName="Riks-Step",
     region=load_region,
     distributionType=UNIFORM,
     cf1=panel.axial_force,
@@ -519,6 +512,34 @@ job = mdb.Job(
 )
 
 job.writeInput()
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Create Job
 
-job.submit(consistencyChecking=OFF)
-job.waitForCompletion()
+job = mdb.Job(
+    atTime=None,
+    contactPrint=OFF,
+    description='',
+    echoPrint=OFF,
+    explicitPrecision=SINGLE,
+    getMemoryFromAnalysis=True,
+    historyPrint=OFF,
+    memory=90,
+    memoryUnits=PERCENTAGE,
+    model=model_name,
+    modelPrint=OFF,
+    multiprocessingMode=DEFAULT,
+    name=job_name,
+    nodalOutputPrecision=SINGLE,
+    numCpus=int(panel.numCpus),
+    numGPUs=int(panel.numGpus),
+    queue=None,
+    resultsFormat=ODB,
+    scratch='',
+    type=ANALYSIS,
+    userSubroutine='',
+    waitHours=0,
+    waitMinutes=0,
+    numDomains=int(panel.numCpus)
+)
+
+job.writeInput()

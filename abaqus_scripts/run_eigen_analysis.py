@@ -113,9 +113,7 @@ Paik_Test = Model_03(
     centroid=-1
 )
 
-
 print("Eigen analysis file: {}".format(job_name))
-
 
 fem_model = ModelWrapper(
     model="abaqus_scripts/models/model_03_eigen.py",
