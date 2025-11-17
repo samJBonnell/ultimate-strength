@@ -12,42 +12,6 @@ from abq_lib.abaqus_imports import Model_02, Model_03
 
 job_name = str(uuid4())
 
-# base_input = Model_02(
-#     model_name='model_02',
-#     job_name=job_name,
-#     job_type="eigen",
-
-#     # Global Geometry
-#     num_longitudinal = 4,
-
-#     width = 3.0,
-#     length = 3.0,
-
-#     # Thickness List
-#     t_panel = 0.010,
-#     t_longitudinal_web = 0.0078,
-#     t_longitudinal_flange = 0.004,
-
-#     # Local stiffener geometry
-#     h_longitudinal_web = 0.125,
-#     w_longitudinal_flange = 0.100,
-
-#     # Applied Pressure
-#     axial_force = 1e6,
-
-#     # Mesh Settings
-#     mesh_plate = 0.02,
-#     mesh_longitudinal_web = 15e-03,
-#     mesh_longitudinal_flange = 0.025,
-
-#     # Model Parameters
-#     numCpus=4,
-#     numGpus=0,
-
-#     centroid=-1
-# )
-
-
 # Geometry because the Paik paper define the thicknesses as manufactured dimensions and we have to factor in the thickness of the panels
 # Plate
 t = 0.010
@@ -70,7 +34,7 @@ t_f_t = 0.010
 h_transverse_web = h_w_t + (1/2)*(t_f_t + t)
 w_transverse_flange = b_f_t
 
-Paik_Test = Model_03(
+base_input = Model_03(
     model_name='model_03',
     job_name=job_name,
     job_type="eigen",
@@ -123,7 +87,7 @@ fem_model = ModelWrapper(
     output_class=ModelOutput
 )
 try:
-    fem_model.write(Paik_Test)
+    fem_model.write(base_input)
     fem_model.run() 
 except Exception as e:
     print(f"Evaluation failed: {e}")

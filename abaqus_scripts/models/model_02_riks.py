@@ -368,10 +368,10 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_max': 0.5,
-        'y_min': -0.001,
+        'y_min': 0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
-    depth_of_search=3
+    depth_of_search=1
     )
 
 # Set the local thickness of the fixed side geometry
@@ -383,10 +383,10 @@ set_local_section(
     restriction_type='bounds',
     restriction_params={
         'z_min': 2.5,
-        'y_min': -0.001,
+        'y_min': 0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
-    depth_of_search=3
+    depth_of_search=1
     )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -520,7 +520,7 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 # model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Teguh-BC', region=plate_edge_set, u2=0.0)
 # 
 # Teguh Linked Sides
-# # Points on either side of the panel that we want to capture get_nodes_along_axis()
+# Points on either side of the panel that we want to capture get_nodes_along_axis()
 # point_one = np.array([[0.0], [panel.width / 2], [0.0]])
 # point_two = np.array([[0.0], [-panel.width / 2], [0.0]])
 

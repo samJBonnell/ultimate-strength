@@ -53,7 +53,7 @@ events.*
 
 # Data directory #
 ######################
-data/
+# data/
 cnn/runs/
 pod_mlp/runs/
 abaqus_scripts/working/
@@ -67,6 +67,7 @@ tree.txt
 *.log
 *.svg
 *.txt
+*.keep
 
 # OS generated files #
 ######################

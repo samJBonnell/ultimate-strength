@@ -18,7 +18,7 @@ from abq_lib.abaqus_imports import Model_02, Model_03
 #   Grab the imperfection file name from eigen analysis results
 # -------------------------------------------------------------------------------------
 
-input_path = Path('data/model_03/eigen/input.jsonl')
+input_path = Path('data/model_02/eigen/input.jsonl')
 last_input = load_last_input(input_path)
 imperfection_file = last_input.job_name
 
@@ -29,98 +29,33 @@ print("Using imperfection file from eigen analysis: {}".format(imperfection_file
 
 job_name = str(uuid4())
 
-# base_input = Model_02(
-#     model_name='model_02',
-#     job_name=job_name,
-#     job_type="riks",
-
-#     # Global Geometry
-#     num_longitudinal = 4,
-
-#     width = 3.0,
-#     length = 3.0,
-
-#     # Thickness List
-#     t_panel = 0.010,
-#     t_longitudinal_web = 0.0078,
-#     t_longitudinal_flange = 0.004,
-
-#     # Local stiffener geometry
-#     h_longitudinal_web = 0.125,
-#     w_longitudinal_flange = 0.100,
-
-#     # Applied Pressure
-#     axial_force = 1e6,
-
-#     # Mesh Settings
-#     mesh_plate = 0.02,
-#     mesh_longitudinal_web = 15e-03,
-#     mesh_longitudinal_flange = 0.025,
-
-#     # Model Parameters
-#     numCpus=4,
-#     numGpus=0,
-
-#     centroid=-1
-# )
-
-# Geometry because the Paik paper define the thicknesses as manufactured dimensions and we have to factor in the thickness of the panels
-# Plate
-t = 0.010
-
-# Longitudinals
-h_w_l = 0.290
-b_f_l = 0.090
-t_w_l = 0.010
-t_f_l = 0.010
-
-h_longitudinal_web = h_w_l + (1/2)*(t_f_l + t)
-w_longitudinal_flange = b_f_l
-
-# Transverse
-h_w_t = 0.665
-b_f_t = 0.150
-t_w_t = 0.010
-t_f_t = 0.010
-
-h_transverse_web = h_w_t + (1/2)*(t_f_t + t)
-w_transverse_flange = b_f_t
-
-base_input = Model_03(
-    model_name='model_03',
+base_input = Model_02(
+    model_name='model_02',
     job_name=job_name,
     job_type="riks",
 
     # Global Geometry
-    num_transverse= 2,
+    num_longitudinal = 4,
 
-    location_longitudinals= [0.24, 0.720, 0.720, 0.720],
-
-    width = 2.640,
-    length = 9.450,
+    width = 3.0,
+    length = 3.0,
 
     # Thickness List
-    t_panel = t,
-    t_longitudinal_web = t_w_l,
-    t_longitudinal_flange = t_f_l,
-    t_transverse_web= t_w_t,
-    t_transverse_flange= t_f_t,
+    t_panel = 0.006,
+    t_longitudinal_web = 0.007,
+    t_longitudinal_flange = 0.006,
 
     # Local stiffener geometry
-    h_longitudinal_web = h_longitudinal_web,
-    w_longitudinal_flange = w_longitudinal_flange,
-    h_transverse_web= h_transverse_web,
-    w_transverse_flange= w_transverse_flange,
+    h_longitudinal_web = 0.200,
+    w_longitudinal_flange = 0.050,
 
     # Applied Pressure
     axial_force = 1e6,
 
     # Mesh Settings
-    mesh_plate = 0.025,
-    mesh_longitudinal_web = 0.025,
+    mesh_plate = 0.02,
+    mesh_longitudinal_web = 15e-03,
     mesh_longitudinal_flange = 0.025,
-    mesh_transverse_web=0.025,
-    mesh_transverse_flange= 0.025,
 
     # Model Parameters
     numCpus=4,
@@ -134,7 +69,7 @@ print("Riks analysis file: {}".format(job_name))
 # Define the imperfection block
 imperfection_block = [
     f'*IMPERFECTION, FILE={imperfection_file}, STEP=1\n',
-    '1, 0.004\n'
+    '1, 0.0015\n'
 ]
 
 # # Define the field output block
@@ -149,9 +84,9 @@ imperfection_block = [
 # -------------------------------------------------------------------------------------
 
 fem_model = ModelWrapper(
-    model="abaqus_scripts/models/model_03_riks.py",
-    input_path="data/model_03/riks/input.jsonl",
-    output_path="data/model_03/riks/output.jsonl",
+    model="abaqus_scripts/models/model_02_riks.py",
+    input_path="data/model_02/riks/input.jsonl",
+    output_path="data/model_02/riks/output.jsonl",
     input_class=ModelClass,
     output_class=ModelOutput
 )
