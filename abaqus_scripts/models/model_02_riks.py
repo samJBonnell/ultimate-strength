@@ -371,7 +371,7 @@ set_local_section(
         'y_min': 0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
-    depth_of_search=1
+    depth_of_search=2
     )
 
 # Set the local thickness of the fixed side geometry
@@ -386,7 +386,7 @@ set_local_section(
         'y_min': 0.001,
         'y_max': panel.mesh_longitudinal_web * 3
         },
-    depth_of_search=1
+    depth_of_search=2
     )
 
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -576,6 +576,12 @@ model.ConcentratedForce(
     cf3=0.0
 )
 
+# Create the imperfection and regenerate the assembly
+L_w = panel.width
+L_l = panel.length
+part = model.parts['panel']
+apply_geometric_imperfection(part, lambda x, y, z: (0.0, 0.0015*cos((pi/L_w)*x)*sin((pi/L_l)*z), 0.0))
+assembly.regenerate()
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Create Job
 

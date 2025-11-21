@@ -475,20 +475,29 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 # Global restriction prevents the movement of the global sides, but we can't restrict the motion of the edge of the panel globally
 global_side_set_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, l_web_locations[0] - capture_offset, -capture_offset, capture_offset])
 constraint_set = assembly.Set(name='global_side_set_1', nodes=(global_side_set_1,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_1', region=assembly.sets['global_side_set_1'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_1', region=assembly.sets['global_side_set_1'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0)
 
 global_side_set_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, l_web_locations[-1] + capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
 constraint_set = assembly.Set(name='global_side_set_2', nodes=(global_side_set_2,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_2', region=assembly.sets['global_side_set_2'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0, ur3 = 0.0)
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='global_side_set_2', region=assembly.sets['global_side_set_2'], u3 = 0.0, ur1 = 0.0, ur2 = 0.0)
 
 # Apply the local displacement BC to prevent U2 movement
-side_nodes_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, panel.width / 2 - capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
-constraint_set = assembly.Set(name='side_nodes_1', nodes=(side_nodes_1,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_1', region=assembly.sets['side_nodes_1'], u2 = 0.0)
+# side_nodes_1, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, panel.width / 2 - capture_offset, panel.width / 2 + capture_offset, -capture_offset, capture_offset])
+# constraint_set = assembly.Set(name='side_nodes_1', nodes=(side_nodes_1,))
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_1', region=assembly.sets['side_nodes_1'], u2 = 0.0)
 
-side_nodes_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, -panel.width / 2 + capture_offset,  -capture_offset, capture_offset])
-constraint_set = assembly.Set(name='side_nodes_2', nodes=(side_nodes_2,))
-model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_2', region=assembly.sets['side_nodes_2'], u2 = 0.0)
+# side_nodes_2, _ = get_nodes(assembly, instance_name='panel', bounds = [-panel.length / 2 + capture_offset, panel.length / 2 - capture_offset, -panel.width / 2 - capture_offset, -panel.width / 2 + capture_offset,  -capture_offset, capture_offset])
+# constraint_set = assembly.Set(name='side_nodes_2', nodes=(side_nodes_2,))
+# model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='side_nodes_2', region=assembly.sets['side_nodes_2'], u2 = 0.0)
+
+constraint_point = np.array([[0.0], [0.0], [0.0]])
+_, label = find_closest_node(assembly, reference_point=constraint_point, instance_name='panel')
+middle_node = assembly.instances['panel'].nodes.sequenceFromLabels((label,))
+constraint_set = assembly.Set(name='middle-bc', nodes=(middle_node,))
+
+# Constrain in the x-2 direction, and allow all other motion
+model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name='Middle-BC', region=assembly.sets['middle-bc'], u2=0.0)
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 

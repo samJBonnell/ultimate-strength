@@ -1,5 +1,3 @@
-import math
-
 def find_closest_node(container, reference_point, instance_name=None, 
                      restricted_directions=None, search_radius=None):
     """
@@ -423,3 +421,42 @@ def create_node_set(container, set_name, instance_name=None, bounds=None):
     labels = [node.label for node in target_nodes]
 
     return target_nodes, labels
+
+def apply_geometric_imperfection(part, field = None):
+    """
+    Move each node within container as a function of the field function. Ex. field = [x, 0, 0] will move each node proportional to its 'x' position in the 'x' direction
+    Use this function to presribe a global or local imperfection of the container
+
+    Parameters
+    ----------
+    part : Part
+        The part on which to prescribe the displacement.
+    field : lambda function
+        The displacement field in R3
+    
+    Returns
+    -------
+    nodes : Abaqus Node Sequence
+    labels : List[int]
+        Node labels
+    """
+
+    if field is None:
+        raise ValueError("[apply_geometric_imperfection] No displacement field defined.")
+    
+    if not hasattr(part, "nodes"):
+        raise ValueError("[apply_geometric_imperfection] `part` is not type Part.")
+
+    nodes = part.nodes
+    new_coordinates = []
+    
+    node_labels = []
+    for node in nodes:
+        x, y, z = node.coordinates
+        dx, dy, dz = field(x, y, z)
+        new_coordinates.append((x + dx, y + dy, z + dz))
+        node_labels.append(node.label)
+    
+    part.editNode(nodes=nodes, coordinates=new_coordinates)
+    
+    return part.nodes, node_labels

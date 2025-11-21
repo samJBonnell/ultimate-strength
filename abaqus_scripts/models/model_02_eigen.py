@@ -217,7 +217,7 @@ for component, thickness in component_thickness_map.items():
     )
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 5
+thickness_multiplier = 15
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
@@ -247,6 +247,8 @@ assembly = model.rootAssembly
 model.BuckleStep(
     name='Buckle-Step',
     previous='Initial',
+    # eigensolver=LANCZOS,
+    # minEigen=0.0,
     numEigen=5,
     maxIterations=500
 )
@@ -537,34 +539,34 @@ model.DisplacementBC(amplitude=UNSET, createStepName='Initial', distributionType
 
 # Teguh Linked Sides
 # Points on either side of the panel that we want to capture get_nodes_along_axis()
-point_one = np.array([[0.0], [panel.width / 2], [0.0]])
-point_two = np.array([[0.0], [-panel.width / 2], [0.0]])
+# point_one = np.array([[0.0], [panel.width / 2], [0.0]])
+# point_two = np.array([[0.0], [-panel.width / 2], [0.0]])
 
-# Labels of the nodes we have captured along the x-axis of the free ends of the panel
-_, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=1, instance_name='panel')
-_, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=1, instance_name='panel')
+# # Labels of the nodes we have captured along the x-axis of the free ends of the panel
+# _, labels_one = get_nodes_along_axis(assembly, reference_point=point_one, dof=1, instance_name='panel')
+# _, labels_two = get_nodes_along_axis(assembly, reference_point=point_two, dof=1, instance_name='panel')
 
-assembly.Set(name = 'Teguh-1-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_one[0],)))
-assembly.Set(name = 'Teguh-1-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_one[1:]))
+# assembly.Set(name = 'Teguh-1-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_one[0],)))
+# assembly.Set(name = 'Teguh-1-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_one[1:]))
 
-assembly.Set(name = 'Teguh-2-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_two[0],)))
-assembly.Set(name = 'Teguh-2-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_two[1:]))
+# assembly.Set(name = 'Teguh-2-Main', nodes = assembly.instances['panel'].nodes.sequenceFromLabels((labels_two[0],)))
+# assembly.Set(name = 'Teguh-2-Follower', nodes = assembly.instances['panel'].nodes.sequenceFromLabels(labels_two[1:]))
 
-equation_sets(
-    model=model,
-    name='Teguh-1',
-    set_one='Teguh-1-Follower',
-    set_two='Teguh-1-Main',
-    linked_dof=[2]
-)
+# equation_sets(
+#     model=model,
+#     name='Teguh-1',
+#     set_one='Teguh-1-Follower',
+#     set_two='Teguh-1-Main',
+#     linked_dof=[2]
+# )
 
-equation_sets(
-    model=model,
-    name='Teguh-2',
-    set_one='Teguh-2-Follower',
-    set_two='Teguh-2-Main',
-    linked_dof=[2]
-)
+# equation_sets(
+#     model=model,
+#     name='Teguh-2',
+#     set_one='Teguh-2-Follower',
+#     set_two='Teguh-2-Main',
+#     linked_dof=[2]
+# )
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Load application
