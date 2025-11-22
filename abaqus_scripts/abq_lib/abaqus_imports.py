@@ -6,7 +6,7 @@ from os.path import join, dirname, abspath, exists
 import os
 
 # Get project root
-# This file is in: ultimate-strength/abaqus_scripts/abq_lib/abaqus_imports.py
+# This file is in: ultimate_strength/abaqus_scripts/abq_lib/abaqus_imports.py
 try:
     # Try __file__ first
     this_file = abspath(__file__)

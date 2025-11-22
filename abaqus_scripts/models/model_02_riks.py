@@ -217,7 +217,7 @@ for component, thickness in component_thickness_map.items():
     )
 
 # Create a new shell section that is N times the thickness of the web for local stiffness increases
-thickness_multiplier = 15
+thickness_multiplier = 12
 model.HomogeneousShellSection(
     idealization=NO_IDEALIZATION,
     integrationRule=SIMPSON,
@@ -369,7 +369,7 @@ set_local_section(
     restriction_params={
         'z_max': 0.5,
         'y_min': 0.001,
-        'y_max': panel.mesh_longitudinal_web * 3
+        'y_max': panel.mesh_longitudinal_web * 5
         },
     depth_of_search=2
     )
@@ -384,7 +384,7 @@ set_local_section(
     restriction_params={
         'z_min': 2.5,
         'y_min': 0.001,
-        'y_max': panel.mesh_longitudinal_web * 3
+        'y_max': panel.mesh_longitudinal_web * 5
         },
     depth_of_search=2
     )

@@ -249,7 +249,7 @@ model.BuckleStep(
     previous='Initial',
     # eigensolver=LANCZOS,
     # minEigen=0.0,
-    numEigen=5,
+    numEigen=100,
     maxIterations=500
 )
 
